@@ -17,7 +17,7 @@ class formSimulation(wx.Dialog):
     listas = ['rpms']
     def __init__(self, *args, **kwds):
         # begin wxGlade: formSimulation.__init__
-        kwds["style"] = wx.DEFAULT_DIALOG_STYLE|wx.RESIZE_BORDER|wx.THICK_FRAME
+        kwds["style"] = wx.DEFAULT_DIALOG_STYLE|wx.RESIZE_BORDER
         wx.Dialog.__init__(self, *args, **kwds)
         self.panel_buttons = wx.Panel(self, -1)
         self.panel_configure = wx.Panel(self, -1)

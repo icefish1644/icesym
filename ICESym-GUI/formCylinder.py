@@ -25,12 +25,12 @@ class formCylinder(wx.Dialog):
     edit = -1
     position = (0,0)
     def __init__(self,*args, **kwds):
-        # begin wxGlade: formCylinder.__init__
-        kwds["style"] = wx.DEFAULT_DIALOG_STYLE|wx.RESIZE_BORDER|wx.THICK_FRAME|wx.FULL_REPAINT_ON_RESIZE
+        # begin wxGlade: formCylinder.__init_
+        kwds["style"] = wx.DEFAULT_DIALOG_STYLE|wx.RESIZE_BORDER|wx.FULL_REPAINT_ON_RESIZE
         wx.Dialog.__init__(self, *args, **kwds)
         self.panel_buttons = wx.Panel(self, -1)
         self.panel_configure = wx.Panel(self, -1)
-        self.configure_notebook = wx.Notebook(self.panel_configure, -1, style=0)
+        self.configure_notebook = wx.Notebook(self.panel_configure, -1)
         self.notebook_state = wx.ScrolledWindow(self.configure_notebook, -1, style=wx.TAB_TRAVERSAL)
         self.notebook_combustion = wx.ScrolledWindow(self.configure_notebook, -1, style=wx.TAB_TRAVERSAL)
         self.notebook_injection = wx.ScrolledWindow(self.configure_notebook, -1, style=wx.TAB_TRAVERSAL)
@@ -451,7 +451,7 @@ class formCylinder(wx.Dialog):
         grid_sizer_12.Add(self.label_13, 0, wx.ALIGN_CENTER_VERTICAL, 0)
         grid_sizer_12.Add(self.data['factor_ht'], 0, wx.ALIGN_CENTER_VERTICAL, 0)
         grid_sizer_12.Add(self.label_18, 0, wx.ALIGN_CENTER_VERTICAL, 0)
-        grid_sizer_12.Add(self.data['mass_C'], 1, wx.EXPAND|wx.SHAPED, 0)
+        grid_sizer_12.Add(self.data['mass_C'], 0, wx.EXPAND|wx.SHAPED, 0)
 
         grid_sizer_12.Add(self.panel_19, 1, wx.EXPAND, 0)
         grid_sizer_12.Add(self.panel_20, 1, wx.EXPAND, 0)
@@ -470,9 +470,9 @@ class formCylinder(wx.Dialog):
         grid_sizer_13.Add(self.data['full_implicit'], 0, 0, 0)
         grid_sizer_13.Add(self.panel_12, 1, wx.EXPAND, 0)
         grid_sizer_13.Add(self.label_19, 0, wx.ALIGN_CENTER_VERTICAL, 0)
-        grid_sizer_13.Add(self.data['data_crevice'], 1, wx.EXPAND|wx.SHAPED, 0)
+        grid_sizer_13.Add(self.data['data_crevice'], 0, wx.EXPAND|wx.SHAPED, 0)
         grid_sizer_13.Add(self.label_20, 0, wx.ALIGN_CENTER_VERTICAL, 0)
-        grid_sizer_13.Add(self.data['U_crevice'], 1, wx.EXPAND|wx.SHAPED, 0)
+        grid_sizer_13.Add(self.data['U_crevice'], 0, wx.EXPAND|wx.SHAPED, 0)
         grid_sizer_13.Add(self.label_27b, 0, wx.ALIGN_CENTER_VERTICAL, 0)
         grid_sizer_13.Add(self.data['species_model'], 0, wx.ALIGN_CENTER_VERTICAL, 0)
         grid_sizer_1.Add(grid_sizer_13, 1, wx.EXPAND, 0)
@@ -506,7 +506,7 @@ class formCylinder(wx.Dialog):
         grid_sizer_29.Add(self.button_3b, 0, wx.ALIGN_CENTER_HORIZONTAL, 0)
         grid_sizer_31.Add(grid_sizer_29, 1, wx.EXPAND, 0)
         grid_sizer_18.Add(grid_sizer_31, 1, wx.EXPAND, 0)
-        grid_sizer_18.Add(self.injection['mfdot_array'], 1, wx.EXPAND|wx.SHAPED, 0)
+        grid_sizer_18.Add(self.injection['mfdot_array'], 0, wx.EXPAND|wx.SHAPED, 0)
         grid_sizer_18.Add(self.panel_22, 1, wx.EXPAND, 0)
         grid_sizer_18.Add(self.panel_23, 1, wx.EXPAND, 0)
         grid_sizer_16.Add(grid_sizer_18, 1, wx.EXPAND, 0)
@@ -532,10 +532,10 @@ class formCylinder(wx.Dialog):
         grid_sizer_43.Add(self.button_2b, 0, wx.ALIGN_CENTER_HORIZONTAL, 0)
         grid_sizer_30.Add(grid_sizer_43, 1, wx.EXPAND, 0)
         grid_sizer_21.Add(grid_sizer_30, 1, wx.EXPAND, 0)
-        grid_sizer_21.Add(self.combustion['xbdot_array'], 1, wx.EXPAND|wx.SHAPED, 0)
+        grid_sizer_21.Add(self.combustion['xbdot_array'], 0, wx.EXPAND|wx.SHAPED, 0)
         grid_sizer_21.Add(self.panel_21, 1, wx.EXPAND, 0)
         grid_sizer_21.Add(self.panel_28, 1, wx.EXPAND, 0)
-        grid_sizer_19.Add(grid_sizer_21, 1, wx.SHAPED, 0)
+        grid_sizer_19.Add(grid_sizer_21, 0, wx.SHAPED, 0)
         self.notebook_combustion.SetSizer(grid_sizer_19)
         grid_sizer_38.Add(self.data['state_ini'], 1, wx.EXPAND, 0)
         grid_sizer_38.Add(self.button_4, 0, wx.ALIGN_CENTER_HORIZONTAL, 0)
@@ -698,7 +698,7 @@ class formCylinder(wx.Dialog):
 
     def onLoadmfdot(self, event): # wxGlade: formCylinder.<event_handler>
         if self.injection['mfdot_array'].IsEnabled():
-            dlg = wx.FileDialog(self, message="Open a Data File", defaultDir="./loads",defaultFile="", wildcard="*.txt", style=wx.OPEN)
+            dlg = wx.FileDialog(self, message="Open a Data File", defaultDir="./loads",defaultFile="", wildcard="*.txt", style=wx.FD_OPEN)
             if dlg.ShowModal() == wx.ID_OK:
                 namefile = dlg.GetPath()
                 data = loadData(namefile,"n",2)
@@ -713,7 +713,7 @@ class formCylinder(wx.Dialog):
 
     def onLoadxbdot(self, event): # wxGlade: formCylinder.<event_handler>
         if self.combustion['xbdot_array'].IsEnabled():
-            dlg = wx.FileDialog(self, message="Open a Data File", defaultDir="./loads",defaultFile="", wildcard="*.txt", style=wx.OPEN)
+            dlg = wx.FileDialog(self, message="Open a Data File", defaultDir="./loads",defaultFile="", wildcard="*.txt", style=wx.FD_OPEN)
             if dlg.ShowModal() == wx.ID_OK:
                 namefile = dlg.GetPath()
                 data = loadData(namefile,"n",2)
@@ -738,7 +738,7 @@ class formCylinder(wx.Dialog):
             ndof = int(self.data['ndof'].GetValue())
             nodes = int(self.data['nnod'].GetValue())
             if self.data['state_ini'].IsEnabled():
-                dlg = wx.FileDialog(self, message="Open a Data File", defaultDir="./loads",defaultFile="", wildcard="*.txt", style=wx.OPEN)
+                dlg = wx.FileDialog(self, message="Open a Data File", defaultDir="./loads",defaultFile="", wildcard="*.txt", style=wx.FD_OPEN)
                 if dlg.ShowModal() == wx.ID_OK:
                     namefile = dlg.GetPath()
                     data = loadData(namefile,nodes,ndof)

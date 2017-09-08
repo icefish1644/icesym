@@ -20,7 +20,7 @@ class formTube(wx.Dialog):
 
     def __init__(self, *args, **kwds):
         # begin wxGlade: formTube.__init__
-        kwds["style"] = wx.DEFAULT_DIALOG_STYLE|wx.RESIZE_BORDER|wx.THICK_FRAME
+        kwds["style"] = wx.DEFAULT_DIALOG_STYLE|wx.RESIZE_BORDER
         wx.Dialog.__init__(self, *args, **kwds)
         self.panel_buttons = wx.Panel(self, -1)
         self.panel_configure = wx.Panel(self, -1)
@@ -89,7 +89,7 @@ class formTube(wx.Dialog):
         self.Bind(wx.EVT_BUTTON, self.ConfigureAccept, self.accept)
         self.Bind(wx.EVT_RADIOBOX, self.onHistoMode, self.data['typeSave'])
         self.Bind(wx.EVT_TEXT, self.onChangeNumNorm, self.data['numNorm'])
-        self.Bind(wx.grid.EVT_GRID_CMD_CELL_CHANGE, self.onChangePosNorm, self.data['posNorm'])
+		#self.Bind(wx.grid.GridEvent.EVT_GRID_CMD_CELL_CHANGED, self.onChangePosNorm, self.data['posNorm'])
         self.Bind(wx.EVT_BUTTON, self.onConstDiam, self.button_constDiam)
         self.Bind(wx.EVT_BUTTON, self.onLinearDiam, self.button_linearDiam)
         self.Bind(wx.EVT_BUTTON, self.onConstTemp, self.button_constTemp)
@@ -241,7 +241,7 @@ class formTube(wx.Dialog):
         grid_sizer_temp = wx.FlexGridSizer(1, 2, 0, 0)
         grid_sizer_tempsub = wx.FlexGridSizer(4, 1, 0, 0)
 
-        grid_sizer_histo = wx.FlexGridSizer(4, 1, 10, 10)
+        grid_sizer_histo = wx.FlexGridSizer(5, 1, 10, 10)
         grid_sizer_state = wx.FlexGridSizer(1, 2, 0, 0)
         grid_sizer_statesub = wx.FlexGridSizer(2, 1, 0, 0)
 
@@ -297,7 +297,6 @@ class formTube(wx.Dialog):
 
         grid_sizer_histo.Add(self.label_9, 0, wx.ALIGN_CENTER_VERTICAL, 0) 
         grid_sizer_histo.Add(self.data['typeSave'], 0, 0, 0)
-        grid_sizer_histo.Add(self.label_9, 0, wx.ALIGN_CENTER_VERTICAL, 0) 
         grid_sizer_histo.Add(self.data['numNorm'], 0, 0, 0)
         grid_sizer_histo.Add(self.data['posNorm'], 0, 0, 0)
         grid_sizer_histo.Add(self.data['histo'], 0, 0, 0)
@@ -412,7 +411,7 @@ class formTube(wx.Dialog):
         try:
             nodes = int(self.data['nnod'].GetValue())
             if self.data['xnod'].IsEnabled():
-                dlg = wx.FileDialog(self, message="Open a Data File", defaultDir="./loads",defaultFile="", wildcard="*.txt", style=wx.OPEN)
+                dlg = wx.FileDialog(self, message="Open a Data File", defaultDir="./loads",defaultFile="", wildcard="*.txt", style=wx.FD_OPEN)
                 if dlg.ShowModal() == wx.ID_OK:
                     namefile = dlg.GetPath()
                     data = loadData(namefile,nodes,1)     
@@ -431,7 +430,7 @@ class formTube(wx.Dialog):
         try:
             nodes = int(self.data['nnod'].GetValue())
             if self.data['diameter'].IsEnabled():
-                dlg = wx.FileDialog(self, message="Open a Data File", defaultDir="./loads",defaultFile="", wildcard="*.txt", style=wx.OPEN)
+                dlg = wx.FileDialog(self, message="Open a Data File", defaultDir="./loads",defaultFile="", wildcard="*.txt", style=wx.FD_OPEN)
                 if dlg.ShowModal() == wx.ID_OK:
                     namefile = dlg.GetPath()
                     data = loadData(namefile,nodes,1)     
@@ -449,7 +448,7 @@ class formTube(wx.Dialog):
         try:
             nodes = int(self.data['nnod'].GetValue())
             if self.data['twall'].IsEnabled():
-                dlg = wx.FileDialog(self, message="Open a Data File", defaultDir="./loads",defaultFile="", wildcard="*.txt", style=wx.OPEN)
+                dlg = wx.FileDialog(self, message="Open a Data File", defaultDir="./loads",defaultFile="", wildcard="*.txt", style=wx.FD_OPEN)
                 if dlg.ShowModal() == wx.ID_OK:
                     namefile = dlg.GetPath()
                     data = loadData(namefile,nodes,1)     
@@ -467,7 +466,7 @@ class formTube(wx.Dialog):
         try:
             nodes = int(self.data['nnod'].GetValue())
             if self.data['curvature'].IsEnabled():
-                dlg = wx.FileDialog(self, message="Open a Data File", defaultDir="./loads",defaultFile="", wildcard="*.txt", style=wx.OPEN)
+                dlg = wx.FileDialog(self, message="Open a Data File", defaultDir="./loads",defaultFile="", wildcard="*.txt", style=wx.FD_OPEN)
                 if dlg.ShowModal() == wx.ID_OK:
                     namefile = dlg.GetPath()
                     data = loadData(namefile,nodes,1)     
@@ -486,7 +485,7 @@ class formTube(wx.Dialog):
             ndof = int(self.data['ndof'].GetValue())
             nodes = int(self.data['nnod'].GetValue())
             if self.data['state_ini'].IsEnabled():
-                dlg = wx.FileDialog(self, message="Open a Data File", defaultDir="./loads",defaultFile="", wildcard="*.txt", style=wx.OPEN)
+                dlg = wx.FileDialog(self, message="Open a Data File", defaultDir="./loads",defaultFile="", wildcard="*.txt", style=wx.FD_OPEN)
                 if dlg.ShowModal() == wx.ID_OK:
                     namefile = dlg.GetPath()
                     data = loadData(namefile,nodes,ndof)

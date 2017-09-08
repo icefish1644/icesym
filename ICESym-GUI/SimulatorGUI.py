@@ -10,12 +10,12 @@ from Home import Home
 # would do this in your app's OnInit or in other startup code...
 
 provider = wx.SimpleHelpProvider()
-wx.HelpProvider_Set(provider)
+wx.HelpProvider.Set(provider)
 
 class SimulatorGUI(wx.App):
     def OnInit(self):
         wx.InitAllImageHandlers()
-        home = Home(None, -1, "")
+        home = Home(self, None, -1, "")
         self.SetTopWindow(home)
         home.Show()
         return 1

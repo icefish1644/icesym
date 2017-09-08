@@ -47,9 +47,9 @@ class Home(wx.Frame):
     pathTests = "./"
     names = ['Cylinders', 'Tubes', 'Tanks', 'Valves', 'Junctions', 'Atmospheres']
     itemsTree = dict()
-    def __init__(self, *args, **kwds):
+    def __init__(self, style, *args, **kwds):
         # begin wxGlade: Home.__init__
-        kwds["style"] = wx.DEFAULT_FRAME_STYLE
+        style = wx.DEFAULT_FRAME_STYLE
         wx.Frame.__init__(self, *args, **kwds)
         self.window_1 = wx.SplitterWindow(self, -1, style=wx.SP_3DBORDER|wx.SP_BORDER|wx.SP_LIVE_UPDATE|wx.WANTS_CHARS)
         self.window_1_pane_2 = wx.ScrolledWindow(self.window_1, -1, style=wx.TAB_TRAVERSAL|wx.WANTS_CHARS)
@@ -123,24 +123,25 @@ class Home(wx.Frame):
         # Tool Bar
         self.home_toolbar = wx.ToolBar(self, -1)
         self.SetToolBar(self.home_toolbar)
-        self.home_toolbar.AddLabelTool(1, "Tube", wx.Bitmap("images/TubesIconeSmall.bmp", wx.BITMAP_TYPE_ANY), wx.NullBitmap, wx.ITEM_NORMAL, "New Tube", "Add new Tube to Simulation")
-        self.home_toolbar.AddLabelTool(2, "Cylinder", wx.Bitmap("images/CylindersIconeSmall.bmp", wx.BITMAP_TYPE_ANY), wx.NullBitmap, wx.ITEM_NORMAL, "New Cylinder", "Add new Cylinder to Simulation")
-        self.home_toolbar.AddLabelTool(3, "Junction", wx.Bitmap("images/JunctionsIconeSmall.bmp", wx.BITMAP_TYPE_ANY), wx.NullBitmap, wx.ITEM_NORMAL, "New Junction", "Add new Junction to simulation")
-        self.home_toolbar.AddLabelTool(4, "Tank", wx.Bitmap("images/TanksIconeSmall.bmp", wx.BITMAP_TYPE_ANY), wx.NullBitmap, wx.ITEM_NORMAL, "New Tank", "Add new Tank to simulation")
-        self.home_toolbar.AddLabelTool(5, "Atmosphere", wx.Bitmap("images/AtmospheresIconeSmall.bmp", wx.BITMAP_TYPE_ANY), wx.NullBitmap, wx.ITEM_NORMAL, "New Atmosphere", "Add new Atmosphere to simulation")
-        self.home_toolbar.AddLabelTool(6, "Valve", wx.Bitmap("images/ValvesIntakeIconeSmall.bmp", wx.BITMAP_TYPE_ANY), wx.NullBitmap, wx.ITEM_NORMAL, "New Valve", "")
+        self.home_toolbar.AddTool(1, "Tube", wx.Bitmap("images/TubesIconeSmall.bmp", wx.BITMAP_TYPE_ANY), wx.NullBitmap, wx.ITEM_NORMAL, "New Tube", "Add new Tube to Simulation")
+        self.home_toolbar.AddTool(2, "Cylinder", wx.Bitmap("images/CylindersIconeSmall.bmp", wx.BITMAP_TYPE_ANY), wx.NullBitmap, wx.ITEM_NORMAL, "New Cylinder", "Add new Cylinder to Simulation")
+        self.home_toolbar.AddTool(3, "Junction", wx.Bitmap("images/JunctionsIconeSmall.bmp", wx.BITMAP_TYPE_ANY), wx.NullBitmap, wx.ITEM_NORMAL, "New Junction", "Add new Junction to simulation")
+        self.home_toolbar.AddTool(4, "Tank", wx.Bitmap("images/TanksIconeSmall.bmp", wx.BITMAP_TYPE_ANY), wx.NullBitmap, wx.ITEM_NORMAL, "New Tank", "Add new Tank to simulation")
+        self.home_toolbar.AddTool(5, "Atmosphere", wx.Bitmap("images/AtmospheresIconeSmall.bmp", wx.BITMAP_TYPE_ANY), wx.NullBitmap, wx.ITEM_NORMAL, "New Atmosphere", "Add new Atmosphere to simulation")
+        self.home_toolbar.AddTool(6, "Valve", wx.Bitmap("images/ValvesIntakeIconeSmall.bmp", wx.BITMAP_TYPE_ANY), wx.NullBitmap, wx.ITEM_NORMAL, "New Valve", "")
 
         # Tool Bar end
         #self.canvas = ogl.ShapeCanvas(self.window_1_pane_2, -1)
         self.canvas = MyShapeCanvas(self,self.window_1_pane_2, -1)
-        self.tree = wx.TreeCtrl(self.window_1_pane_1,-1, wx.DefaultPosition, wx.DefaultSize,wx.TR_HAS_BUTTONS|wx.TR_HIDE_ROOT)
+        #self.tree = wx.TreeCtrl(self.window_1_pane_1,-1, wx.DefaultPosition, wx.DefaultSize,wx.TR_HAS_BUTTONS|wx.TR_HIDE_ROOT)
+        self.tree = wx.TreeCtrl(self.window_1_pane_1, -1, wx.DefaultPosition, wx.DefaultSize, wx.TR_HAS_BUTTONS)
        
         isz = (16,16)
         il = wx.ImageList(isz[0], isz[1])
-        self.fldridx     = il.Add(wx.ArtProvider_GetBitmap(wx.ART_FOLDER,      wx.ART_OTHER, isz))
-        self.fldropenidx = il.Add(wx.ArtProvider_GetBitmap(wx.ART_FILE_OPEN,   wx.ART_OTHER, isz))
-        self.fileidx     = il.Add(wx.ArtProvider_GetBitmap(wx.ART_NORMAL_FILE, wx.ART_OTHER, isz))
-        self.tipdx         = il.Add(wx.ArtProvider_GetBitmap(wx.ART_TIP,   wx.ART_OTHER, isz))
+        self.fldridx     = il.Add(wx.ArtProvider.GetBitmap(wx.ART_FOLDER,      wx.ART_OTHER, isz))
+        self.fldropenidx = il.Add(wx.ArtProvider.GetBitmap(wx.ART_FILE_OPEN,   wx.ART_OTHER, isz))
+        self.fileidx     = il.Add(wx.ArtProvider.GetBitmap(wx.ART_NORMAL_FILE, wx.ART_OTHER, isz))
+        self.tipdx         = il.Add(wx.ArtProvider.GetBitmap(wx.ART_TIP,   wx.ART_OTHER, isz))
         #smileidx    = il.Add(images.Smiles.GetBitmap())
 
         self.tree.SetImageList(il)
@@ -152,7 +153,7 @@ class Home(wx.Frame):
         #        the item data.
 
         self.root = self.tree.AddRoot("The Root Item")
-        self.tree.SetPyData(self.root, None)
+        self.tree.SetItemData(self.root, None)
         self.tree.SetItemImage(self.root, self.fldridx, wx.TreeItemIcon_Normal)
         self.tree.SetItemImage(self.root, self.fldropenidx, wx.TreeItemIcon_Expanded)
   
@@ -250,7 +251,7 @@ class Home(wx.Frame):
         if self.thisFile != 'untitled.py':
             self.closeFile()
 
-        dlg = wx.FileDialog(self, message="Open a File", defaultDir="./saves",defaultFile="", wildcard="*.py", style=wx.OPEN)
+        dlg = wx.FileDialog(self, message="Open a File", defaultDir="./saves",defaultFile="", wildcard="*.py", style=wx.FD_OPEN)
         if dlg.ShowModal() == wx.ID_OK:
             namefile = dlg.GetPath()
             self.readFile(namefile)
@@ -259,23 +260,23 @@ class Home(wx.Frame):
 
 
     def OnMenuFileSave(self, event): # wxGlade: Home.<event_handler>
-		if self.Simulator == []:
-			wx.MessageBox("You must Configure this Simulation Before", "Error")
-		else:
-			if self.thisFile == "untitled.py":
-				dlg = wx.FileDialog(self, message="Save File", defaultDir="./saves",defaultFile=self.thisFile, wildcard="*.py", style=wx.SAVE)
-				if dlg.ShowModal() == wx.ID_OK:
-					namefile = dlg.GetPath()
-					self.saveFile(namefile)
-				dlg.Destroy()
-			else:
-				self.saveFile(self.thisFile)
+        if self.Simulator == []:
+            wx.MessageBox("You must Configure this Simulation Before", "Error")
+        else:
+            if self.thisFile == "untitled.py":
+                dlg = wx.FileDialog(self, message="Save File", defaultDir="./saves",defaultFile=self.thisFile, wildcard="*.py", style=wx.FD_SAVE)
+                if dlg.ShowModal() == wx.ID_OK:
+                    namefile = dlg.GetPath()
+                    self.saveFile(namefile)
+                dlg.Destroy()
+            else:
+                self.saveFile(self.thisFile)
 
     def OnMenuFileSaveAs(self, event): # wxGlade: Home.<event_handler>
         if self.Simulator == []:
             wx.MessageBox("You must Configure this Simulation Before", "Error")
         else:
-            dlg = wx.FileDialog(self, message="Save File As", defaultDir="./saves",defaultFile=self.thisFile, wildcard="*.py", style=wx.SAVE|wx.OVERWRITE_PROMPT)
+            dlg = wx.FileDialog(self, message="Save File As", defaultDir="./saves",defaultFile=self.thisFile, wildcard="*.py", style=wx.FD_SAVE|wx.FD_OVERWRITE_PROMPT)
             if dlg.ShowModal() == wx.ID_OK:
                 namefile = dlg.GetPath()
                 self.saveFile(namefile)
@@ -332,25 +333,25 @@ class Home(wx.Frame):
         # self.itemsTree = dict()
 
     def OnMenuEditCopy(self, event): # wxGlade: Home.<event_handler>
-		(shapeObject,index) = self.findSelected()
-		if shapeObject==-1 and index == -1:
-			return  
-		if isinstance(shapeObject,ogl.BitmapShape):
-			(element,indexElem) = self.shapes[index]
-			#print element,indexElem
-			if element == "Cylinders":
-				self.copyboard = ("Cylinders", self.Cylinders[indexElem].copy())
-			if element == "Valves":
-				self.copyboard = ("Valves", self.Valves[indexElem].copy())
-			if element == "Tubes":
-				self.copyboard = ("Tubes", self.Tubes[indexElem].copy())
-			if element == "Junctions":
-				self.copyboard = ("Junctions", self.Junctions[indexElem].copy())
-			if element == "Atmospheres":
-				self.copyboard = ("Atmospheres", self.Atmospheres[indexElem].copy())
-			if element == "Tanks":
-				self.copyboard = ("Tanks", self.Tanks[indexElem].copy())
-			self.copynumber = 0
+        (shapeObject,index) = self.findSelected()
+        if shapeObject==-1 and index == -1:
+            return
+        if isinstance(shapeObject,ogl.BitmapShape):
+            (element,indexElem) = self.shapes[index]
+            #print element,indexElem
+            if element == "Cylinders":
+                self.copyboard = ("Cylinders", self.Cylinders[indexElem].copy())
+            if element == "Valves":
+                self.copyboard = ("Valves", self.Valves[indexElem].copy())
+            if element == "Tubes":
+                self.copyboard = ("Tubes", self.Tubes[indexElem].copy())
+            if element == "Junctions":
+                self.copyboard = ("Junctions", self.Junctions[indexElem].copy())
+            if element == "Atmospheres":
+                self.copyboard = ("Atmospheres", self.Atmospheres[indexElem].copy())
+            if element == "Tanks":
+                self.copyboard = ("Tanks", self.Tanks[indexElem].copy())
+            self.copynumber = 0
 
     def OnMenuEditPaste(self, event): # wxGlade: Home.<event_handler>
         if not(self.copyboard == ''):
@@ -466,7 +467,10 @@ class Home(wx.Frame):
 
             archi = open(self.pathCode + "exec.py", "w")
 
-            lines = [
+            pathName = pathName.encode("utf-8")
+            moduleName = moduleName.encode("utf-8")
+
+            lines = ['# coding= utf-8\n',
                 'from numpy import array\n',
                 'import time\n',
                 'import sys\n',
@@ -482,12 +486,13 @@ class Home(wx.Frame):
                 'now2 = time.time()\n',
                 'print now2-now\n']
             
-            archi.writelines(lines)
+            archi.writelines([str(x) for x in lines])
+
             archi.close()
-		
+
             os.system("python "+self.pathCode+"exec.py &")
-		
-		
+
+
     def OnMenuSimulationPost(self, event): # wxGlade: Home.<event_handler>
         folder_name = self.pathTests + "tests/" + self.Simulator[0]['folder_name']
         if self.Simulator == []:
@@ -505,8 +510,8 @@ class Home(wx.Frame):
         dlg.Destroy()
 
     def OnMenuUserHelp(self, event): # wxGlade: Home.<event_handler>
-		help = Help(None, -1, "")
-		help.Show()
+        help = Help(None, -1, "")
+        help.Show()
 
 
     def OnStatusBarValve(self, event, edit=-1): # wxGlade: Home.<event_handler>
@@ -862,9 +867,12 @@ class Home(wx.Frame):
             for j in range(i2-i1-1):
                 moduleName = moduleName + filename[j+i1+1]
             
-            sys.path.append(str(pathName))
+            pathName = pathName.encode('utf-8')
+            sys.path.append(pathName)
+            moduleName = moduleName.encode("utf-8")
+
             externalData = __import__(str(moduleName))
-			
+
             self.Simulator.append(externalData.Simulator)
             self.Cylinders = externalData.Cylinders
             self.Tanks = externalData.Tanks
@@ -1396,7 +1404,6 @@ class Home(wx.Frame):
                 self.Tanks[indexTo]['nnod'] = len(self.Tanks[indexTo]['int2tube']) + len(self.Tanks[indexTo]['exh2tube']) + 1 
             if elementTo == "Valves":
                 self.Valves[indexTo]['tube'] = indexFrom
-                self
             if elementTo == "Tubes":
                 self.Tubes[indexTo]['nleft'] = indexFrom
                 self.Tubes[indexTo]['tleft'] = "tube"
@@ -1658,7 +1665,7 @@ class Home(wx.Frame):
         toDelete = self.itemsTree[element][indexElem]
         for c in self.itemsTree[element]:
             if int(c) > indexElem:
- 	        peer = self.tree.GetItemPyData(self.itemsTree[element][c])
+                peer = self.tree.GetItemPyData(self.itemsTree[element][c])
                 p0 = peer[0]
                 p1 = peer[1] - 1
                 peer = (p0,p1)	
@@ -1741,40 +1748,40 @@ class Home(wx.Frame):
         self.saved = 0
 
     def findTubesNames(self,indexs):
-		labels = []
-		for i in indexs:
-			labels.append(self.Tubes[i]['label'])
-		return labels
+        labels = []
+        for i in indexs:
+            labels.append(self.Tubes[i]['label'])
+        return labels
 
-	# antes de correr se comprueba si todos los componentes estan conectados
-	# falta comprobar los cylinders
+    # antes de correr se comprueba si todos los componentes estan conectados
+    # falta comprobar los cylinders
     def hasDisconnections(self):
-		disconnected = []	
-	
-		for t in self.Tubes:
-			if t['nleft'] == -1 or t['nright'] == -1:
-				disconnected.append(t['label'])
+        disconnected = []
 
-		for j in self.Junctions:
-			has_in = 0
-			has_exh = 0
-			for t in j['type_end']:
-				if t==1:
-					has_in = 1
-				else:
-					has_exh = 1
-			if has_in == 0 or has_exh == 0:
-				disconnected.append(j['label'])	
-		
-		for t in self.Tanks:
-			if len(t['int2tube']) == 0 or len(t['exh2tube']) == 0:
-				disconnected.append(t['label'])
+        for t in self.Tubes:
+            if t['nleft'] == -1 or t['nright'] == -1:
+                disconnected.append(t['label'])
 
-		for v in self.Valves:
-			if v['tube'] == -1 or v['ncyl'] == -1:
-				disconnected.append(v['label'])
+        for j in self.Junctions:
+            has_in = 0
+            has_exh = 0
+            for t in j['type_end']:
+                if t==1:
+                    has_in = 1
+                else:
+                    has_exh = 1
+            if has_in == 0 or has_exh == 0:
+                disconnected.append(j['label'])
 
-		return disconnected
+        for t in self.Tanks:
+            if len(t['int2tube']) == 0 or len(t['exh2tube']) == 0:
+                disconnected.append(t['label'])
+
+        for v in self.Valves:
+            if v['tube'] == -1 or v['ncyl'] == -1:
+                disconnected.append(v['label'])
+
+        return disconnected
 
 ####--------------------------------------------####
 
@@ -1807,22 +1814,22 @@ class Home(wx.Frame):
 
 
     def OnLeftDClick(self, event):
-		pt = event.GetPosition();
-		item, flags = self.tree.HitTest(pt)
-		if item:
-			peer = self.tree.GetItemPyData(item)
-			if peer[0] == "Cylinders":
-				self.OnStatusBarCylinder("", peer[1])
-			if peer[0] == "Junctions":
-				self.OnStatusBarJunction("", peer[1])
-			if peer[0] == "Tubes":
-				self.OnStatusBarTube("", peer[1])
-			if peer[0] == "Tanks":
-				self.OnStatusBarTank("", peer[1])
-			if peer[0] == "Atmospheres":
-				self.OnStatusBarAtmosphere("", peer[1])
-			if peer[0] == "Valves":
-				self.OnStatusBarValve("", peer[1])
+        pt = event.GetPosition();
+        item, flags = self.tree.HitTest(pt)
+        if item:
+            peer = self.tree.GetItemPyData(item)
+            if peer[0] == "Cylinders":
+                self.OnStatusBarCylinder("", peer[1])
+            if peer[0] == "Junctions":
+                self.OnStatusBarJunction("", peer[1])
+            if peer[0] == "Tubes":
+                self.OnStatusBarTube("", peer[1])
+            if peer[0] == "Tanks":
+                self.OnStatusBarTank("", peer[1])
+            if peer[0] == "Atmospheres":
+                self.OnStatusBarAtmosphere("", peer[1])
+            if peer[0] == "Valves":
+                self.OnStatusBarValve("", peer[1])
 
     def OnSize(self, event):
         w,h = self.GetClientSizeTuple()
@@ -1872,23 +1879,23 @@ class Home(wx.Frame):
         self.tree.SetItemPyData(last,peer)
         self.itemsTree[element][index] = last
         self.tree.SetItemImage(last, self.tipdx, wx.TreeItemIcon_Normal)
-			
+
     def deleteItemTree(self,element,index):
-		self.tree.Delete(self.itemsTree[element][index])
+        self.tree.Delete(self.itemsTree[element][index])
 
     def getLabel(self,element,index):
-		if element == "Tubes":
-			return self.Tubes[index]['label']
-		if element == "Junctions":
-			return self.Junctions[index]['label']
-		if element == "Tanks":
-			return self.Tanks[index]['label']
-		if element == "Cylinders":
-			return self.Cylinders[index]['label']
-		if element == "Valves":   	
-			return self.Valves[index]['label']
-		if element == "Atmospheres":
-			return "atmosp_"+str(len(self.Atmospheres))		
+        if element == "Tubes":
+            return self.Tubes[index]['label']
+        if element == "Junctions":
+            return self.Junctions[index]['label']
+        if element == "Tanks":
+            return self.Tanks[index]['label']
+        if element == "Cylinders":
+            return self.Cylinders[index]['label']
+        if element == "Valves":
+            return self.Valves[index]['label']
+        if element == "Atmospheres":
+            return "atmosp_"+str(len(self.Atmospheres))
 
 # end of class Home
 

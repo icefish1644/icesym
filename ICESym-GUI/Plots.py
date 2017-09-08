@@ -13,7 +13,7 @@ import  wx.lib.plot as plot
 class Plots(wx.Dialog):
     def __init__(self, *args, **kwds):
         # begin wxGlade: Plots.__init__
-        kwds["style"] = wx.DEFAULT_DIALOG_STYLE|wx.RESIZE_BORDER|wx.THICK_FRAME
+        kwds["style"] = wx.DEFAULT_DIALOG_STYLE|wx.RESIZE_BORDER
         wx.Dialog.__init__(self, *args, **kwds)
         self.panel_8 = wx.Panel(self, -1)
 

@@ -31,9 +31,9 @@ class Help(wx.Frame):
         # Tool Bar
         self.toolbar = wx.ToolBar(self, -1)
         self.SetToolBar(self.toolbar)
-        self.toolbar.AddLabelTool(1, "Tree Help", wx.ArtProvider_GetBitmap(wx.ART_GO_HOME, wx.ART_OTHER), wx.NullBitmap, wx.ITEM_NORMAL, "Tree Help", "See the tree help")
-        self.toolbar.AddLabelTool(2, "Previous", wx.ArtProvider_GetBitmap(wx.ART_GO_BACK, wx.ART_OTHER), wx.NullBitmap, wx.ITEM_NORMAL, "Previous", "Previous Page")
-        self.toolbar.AddLabelTool(3, "Next", wx.ArtProvider_GetBitmap(wx.ART_GO_FORWARD, wx.ART_OTHER), wx.NullBitmap, wx.ITEM_NORMAL, "Next", "Next Page")
+        self.toolbar.AddTool(1, "Tree Help", wx.ArtProvider.GetBitmap(wx.ART_GO_HOME, wx.ART_OTHER), wx.NullBitmap, wx.ITEM_NORMAL, "Tree Help", "See the tree help")
+        self.toolbar.AddTool(2, "Previous", wx.ArtProvider.GetBitmap(wx.ART_GO_BACK, wx.ART_OTHER), wx.NullBitmap, wx.ITEM_NORMAL, "Previous", "Previous Page")
+        self.toolbar.AddTool(3, "Next", wx.ArtProvider.GetBitmap(wx.ART_GO_FORWARD, wx.ART_OTHER), wx.NullBitmap, wx.ITEM_NORMAL, "Next", "Next Page")
         # Tool Bar end
 
 # ---------------- START tree config --------------------------------------------------- #
@@ -42,10 +42,10 @@ class Help(wx.Frame):
        
         isz = (16,16)
         il = wx.ImageList(isz[0], isz[1])
-        self.fldridx     = il.Add(wx.ArtProvider_GetBitmap(wx.ART_HELP_BOOK, wx.ART_OTHER, isz))
-        self.fldropenidx = il.Add(wx.ArtProvider_GetBitmap(wx.ART_HELP_SIDE_PANEL, wx.ART_OTHER, isz))
-        self.fileidx     = il.Add(wx.ArtProvider_GetBitmap(wx.ART_NORMAL_FILE, wx.ART_OTHER, isz))
-        self.tipdx       = il.Add(wx.ArtProvider_GetBitmap(wx.ART_TIP,   wx.ART_OTHER, isz))
+        self.fldridx     = il.Add(wx.ArtProvider.GetBitmap(wx.ART_HELP_BOOK, wx.ART_OTHER, isz))
+        self.fldropenidx = il.Add(wx.ArtProvider.GetBitmap(wx.ART_HELP_SIDE_PANEL, wx.ART_OTHER, isz))
+        self.fileidx     = il.Add(wx.ArtProvider.GetBitmap(wx.ART_NORMAL_FILE, wx.ART_OTHER, isz))
+        self.tipdx       = il.Add(wx.ArtProvider.GetBitmap(wx.ART_TIP,   wx.ART_OTHER, isz))
         #smileidx    = il.Add(images.Smiles.GetBitmap())
 
         self.tree.SetImageList(il)

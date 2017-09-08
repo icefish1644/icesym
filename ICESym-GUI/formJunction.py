@@ -20,7 +20,7 @@ class formJunction(wx.Dialog):
 
     def __init__(self, *args, **kwds):
         # begin wxGlade: formJunction.__init__
-        kwds["style"] = wx.DEFAULT_DIALOG_STYLE|wx.RESIZE_BORDER|wx.THICK_FRAME
+        kwds["style"] = wx.DEFAULT_DIALOG_STYLE|wx.RESIZE_BORDER
         wx.Dialog.__init__(self, *args, **kwds)
         self.panel_buttons = wx.Panel(self, -1)
         self.panel_configure = wx.ScrolledWindow(self, -1, style=wx.TAB_TRAVERSAL)
@@ -192,7 +192,7 @@ class formJunction(wx.Dialog):
             ndof = int(self.data['nnod'].GetValue())
             nodes = int(self.data['ndof'].GetValue())
             if self.data['histo'].IsEnabled():
-                dlg = wx.FileDialog(self, message="Open a Data File", defaultDir="./loads",defaultFile="", wildcard="*.txt", style=wx.OPEN)
+                dlg = wx.FileDialog(self, message="Open a Data File", defaultDir="./loads",defaultFile="", wildcard="*.txt", style=wx.FD_OPEN)
                 if dlg.ShowModal() == wx.ID_OK:
                     namefile = dlg.GetPath()
                     data = loadData(namefile,nodes,ndof)

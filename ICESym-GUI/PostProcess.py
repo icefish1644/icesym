@@ -131,7 +131,7 @@ class PostProcess(wx.Frame):
         # end wxGlade
 
     def onOpenPost(self,event):
-        dlg = wx.FileDialog(self, message="Open a File", defaultDir=self.path,defaultFile="", wildcard="*.post", style=wx.OPEN)
+        dlg = wx.FileDialog(self, message="Open a File", defaultDir=self.path,defaultFile="", wildcard="*.post", style=wx.FD_OPEN)
         if dlg.ShowModal() == wx.ID_OK:
             namefile = dlg.GetPath()
             self.readFile(namefile)

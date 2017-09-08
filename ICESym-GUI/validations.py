@@ -52,7 +52,7 @@ class numberValidator(wx.PyValidator):
 			ret = self.validateList(text)
 
 		if(ret==1):
-			textCtrl.SetBackgroundColour(wx.SystemSettings_GetColour(wx.SYS_COLOUR_WINDOW))
+			textCtrl.SetBackgroundColour(wx.SystemSettings.GetColour(wx.SYS_COLOUR_WINDOW))
 			textCtrl.Refresh()
 			return True
 		else:

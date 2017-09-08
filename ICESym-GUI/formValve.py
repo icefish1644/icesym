@@ -22,7 +22,7 @@ class formValve(wx.Dialog):
 
     def __init__(self, *args, **kwds):
         # begin wxGlade: formValve.__init__
-        kwds["style"] = wx.DEFAULT_DIALOG_STYLE|wx.RESIZE_BORDER|wx.THICK_FRAME
+        kwds["style"] = wx.DEFAULT_DIALOG_STYLE|wx.RESIZE_BORDER
         wx.Dialog.__init__(self, *args, **kwds)
         self.panel_buttons = wx.Panel(self, -1)
         self.panel_configure = wx.Panel(self, -1, style=wx.TAB_TRAVERSAL)
@@ -275,7 +275,7 @@ class formValve(wx.Dialog):
 
     def onLoadLvmax(self, event): # wxGlade: formValve.<event_handler>
         if self.data['Lv'].IsEnabled():
-            dlg = wx.FileDialog(self, message="Open a Data File", defaultDir="./loads",defaultFile="", wildcard="*.txt", style=wx.OPEN)
+            dlg = wx.FileDialog(self, message="Open a Data File", defaultDir="./loads",defaultFile="", wildcard="*.txt", style=wx.FD_OPEN)
             if dlg.ShowModal() == wx.ID_OK:
                 namefile = dlg.GetPath()
                 data = loadData(namefile,"n",2)
@@ -290,7 +290,7 @@ class formValve(wx.Dialog):
 
     def onLoadDC(self, event): # wxGlade: formValve.<event_handler>
         if self.data['Cd'].IsEnabled():
-            dlg = wx.FileDialog(self, message="Open a Data File", defaultDir="./loads",defaultFile="", wildcard="*.txt", style=wx.OPEN)
+            dlg = wx.FileDialog(self, message="Open a Data File", defaultDir="./loads",defaultFile="", wildcard="*.txt", style=wx.FD_OPEN)
             if dlg.ShowModal() == wx.ID_OK:
                 namefile = dlg.GetPath()
                 data = loadData(namefile,"n",2)
@@ -318,7 +318,7 @@ class formValve(wx.Dialog):
             ndof = 3
             nodes = int(self.data['Nval'].GetValue())
             if self.data['histo'].IsEnabled():
-                dlg = wx.FileDialog(self, message="Open a Data File", defaultDir="./loads",defaultFile="", wildcard="*.txt", style=wx.OPEN)
+                dlg = wx.FileDialog(self, message="Open a Data File", defaultDir="./loads",defaultFile="", wildcard="*.txt", style=wx.FD_OPEN)
                 if dlg.ShowModal() == wx.ID_OK:
                     namefile = dlg.GetPath()
                     data = loadData(namefile,nodes,ndof)
