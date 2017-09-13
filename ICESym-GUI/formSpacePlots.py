@@ -111,7 +111,7 @@ class spacePlots(wx.Dialog):
 					self.data[d].SetBackgroundColour("pink")
 					can_out = 0
 				else:
-					self.data[d].SetBackgroundColour(wx.SystemSettings_GetColour(wx.SYS_COLOUR_WINDOW))
+					self.data[d].SetBackgroundColour(wx.SystemSettings.GetColour(wx.SYS_COLOUR_WINDOW))
 					self.parsedData[d] = self.data[d].GetStringSelection()
 					if d in ["element_ndof", "element_number"]: #no necesito la palabra, sino el numero
 						self.parsedData[d+"_str"] = self.parsedData[d]
@@ -128,10 +128,10 @@ class spacePlots(wx.Dialog):
 						self.data[d].SetBackgroundColour("pink")
 						can_out = 0
 					else:
-						self.data[d].SetBackgroundColour(wx.SystemSettings_GetColour(wx.SYS_COLOUR_WINDOW))
+						self.data[d].SetBackgroundColour(wx.SystemSettings.GetColour(wx.SYS_COLOUR_WINDOW))
 						self.parsedData[d] = tm
 				else:
-					self.data[d].SetBackgroundColour(wx.SystemSettings_GetColour(wx.SYS_COLOUR_WINDOW))
+					self.data[d].SetBackgroundColour(wx.SystemSettings.GetColour(wx.SYS_COLOUR_WINDOW))
 					self.parsedData[d] = self.data[d].GetValue()
 	
 		if can_out == 1:

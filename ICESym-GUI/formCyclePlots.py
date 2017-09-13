@@ -120,7 +120,7 @@ class cyclePlots(wx.Dialog):
 					self.data[d].SetBackgroundColour("pink")
 					can_out = 0
 				else:
-					self.data[d].SetBackgroundColour(wx.SystemSettings_GetColour(wx.SYS_COLOUR_WINDOW))
+					self.data[d].SetBackgroundColour(wx.SystemSettings.GetColour(wx.SYS_COLOUR_WINDOW))
 					self.parsedData[d] = self.data[d].GetStringSelection()
 					if d == "element_nnod": #por lass dudas elige una valve (agrega intake o exhaust)
 						l = string.split(str(self.parsedData[d]))
@@ -137,13 +137,13 @@ class cyclePlots(wx.Dialog):
 					self.data[d].SetBackgroundColour("pink")
 					can_out = 0
 				else:
-					self.data[d].SetBackgroundColour(wx.SystemSettings_GetColour(wx.SYS_COLOUR_WINDOW))
+					self.data[d].SetBackgroundColour(wx.SystemSettings.GetColour(wx.SYS_COLOUR_WINDOW))
 			else:
 				if self.data[d].GetValue() == '':
 					self.data[d].SetBackgroundColour("pink")
 					can_out = 0
 				else:
-					self.data[d].SetBackgroundColour(wx.SystemSettings_GetColour(wx.SYS_COLOUR_WINDOW))
+					self.data[d].SetBackgroundColour(wx.SystemSettings.GetColour(wx.SYS_COLOUR_WINDOW))
 					self.parsedData[d] = self.data[d].GetValue()
 	
 		if can_out == 1:
