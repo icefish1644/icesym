@@ -12,7 +12,7 @@ typedef struct
   int nnod_input, nvi, nve, nnod, ndof, model_ht, type_ig, nunit, 
     species_model, ntemp, nvanes;
   double Bore, crank_radius, Vol_clearance, rod_length, head_chamber_area,
-    piston_area, theta_0, delta_ca, Twall, factor_ht, major_radius, 
+    piston_area, theta_0, delta_ca, Twall, factor_ht, major_radius,
     minor_radius, chamber_heigh;
   bool scavenge, full_implicit,nh_temp;
 } dataCylinder;

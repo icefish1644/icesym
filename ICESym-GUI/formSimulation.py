@@ -153,7 +153,7 @@ class formSimulation(wx.Dialog):
         sizer_buttons = wx.GridSizer(1, 3, 0, 0)
         configure_sizer = wx.BoxSizer(wx.HORIZONTAL)
         grid_sizer_14 = wx.FlexGridSizer(1, 2, 6, 6)
-        grid_sizer_15 = wx.FlexGridSizer(6, 2, 6, 6)
+        grid_sizer_15 = wx.FlexGridSizer(7, 2, 6, 6)
         grid_sizer_16 = wx.FlexGridSizer(4, 1, 6, 6)
         grid_sizer_9 = wx.FlexGridSizer(1, 2, 0, 10)
         grid_sizer_11 = wx.FlexGridSizer(6, 2, 0, 0)

@@ -8,17 +8,17 @@ simCythonCPP.cpp: simCythonCPP.pyx $(wildcard *.pyx)
 	cython --cplus --working . -I. $<
 
 build: src
-	python setup.py build
+	python2.7 setup.py build
 
 install: build
-	python setup.py install
+	python2.7 setup.py install
 
 install_gdb: build
-	python setup_gdb.py install
+	python2.7 setup_gdb.py install
 
 install_home: build
-	python setup.py install --home=${HOME}
+	python2.7 setup.py install --home=${HOME}
 
 clean:
-	python setup.py clean --all
+	python2.7 setup.py clean --all
 	${RM} simCythonCPP.cpp *.pyc *~

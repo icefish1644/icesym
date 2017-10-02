@@ -202,8 +202,21 @@ cdef class Cylinder:
 
 		onlyAssert(kargs,'twall','Cylinder')
 		cdef doublevec twall = doublevec_factory(0)
+		
+		cdef double t_prom 
+		#print len(kargs['twall'])
+		#print kargs['twall']
 		for i in range(len(kargs['twall'])):
+		
 			twall.push_back(kargs['twall'][i])
+			
+		if (len(kargs['twall']) == 1):
+			twall.push_back(kargs['twall'][0])
+			twall.push_back(kargs['twall'][0])
+		elif (len(kargs['twall']) == 2):
+			t_prom = (kargs['twall'][0]+kargs['twall'][1])/2
+			twall.push_back(t_prom)
+				
 		#cdef double twall = validatePositive(kargs,'twall','Cylinder')
 
 		cdef int type_ig       = assignOptional(kargs,'type_ig',0)

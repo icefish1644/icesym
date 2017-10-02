@@ -518,9 +518,10 @@ class PostProcess(wx.Frame):
         if self.infoFigSaved[nf][0]:
             self.canvas_list[nf].SaveFile(self.infoFigSaved[nf][1])
         else:
-            dlg = wx.FileDialog(self, message="Save Figure As", defaultDir=self.path,defaultFile="untitled.jpg", wildcard="*.jpg", style=wx.SAVE)
+            dlg = wx.FileDialog(self, message="Save Figure As", defaultDir=self.path, wildcard="*.jpg", style=wx.FD_SAVE)
             if dlg.ShowModal() == wx.ID_OK:
                 namefile = dlg.GetPath()
+                print namefile
                 self.canvas_list[nf].SaveFile(namefile) #bug en wxpython, ver: http://www.daniweb.com/forums/thread196744.html#
                 self.infoFigSaved[nf][0] = True
                 self.infoFigSaved[nf][1] = namefile

@@ -264,7 +264,7 @@ class Home(wx.Frame):
             wx.MessageBox("You must Configure this Simulation Before", "Error")
         else:
             if self.thisFile == "untitled.py":
-                dlg = wx.FileDialog(self, message="Save File", defaultDir="./saves",defaultFile=self.thisFile, wildcard="*.py", style=wx.FD_SAVE)
+                dlg = wx.FileDialog(self, message="Save File", defaultDir="./saves", wildcard="*.py", style=wx.FD_SAVE)
                 if dlg.ShowModal() == wx.ID_OK:
                     namefile = dlg.GetPath()
                     self.saveFile(namefile)
@@ -276,7 +276,7 @@ class Home(wx.Frame):
         if self.Simulator == []:
             wx.MessageBox("You must Configure this Simulation Before", "Error")
         else:
-            dlg = wx.FileDialog(self, message="Save File As", defaultDir="./saves",defaultFile=self.thisFile, wildcard="*.py", style=wx.FD_SAVE|wx.FD_OVERWRITE_PROMPT)
+            dlg = wx.FileDialog(self, message="Save File As", defaultDir="./saves", wildcard="*.py", style=wx.FD_SAVE|wx.FD_OVERWRITE_PROMPT)
             if dlg.ShowModal() == wx.ID_OK:
                 namefile = dlg.GetPath()
                 self.saveFile(namefile)
@@ -490,7 +490,7 @@ class Home(wx.Frame):
 
             archi.close()
 
-            os.system("python "+self.pathCode+"exec.py &")
+            os.system("python2.7 "+self.pathCode+"exec.py &")
 
 
     def OnMenuSimulationPost(self, event): # wxGlade: Home.<event_handler>

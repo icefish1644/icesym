@@ -1,12 +1,12 @@
 module def_cylinder
-  
+
   use def_simulator
   use def_valve
   use def_multivalve
   use gasdyn_utils
   use utilities
   use, intrinsic :: ISO_C_BINDING
-  
+
   type, BIND(C) :: fuel
      real(C_DOUBLE) :: Q_fuel,y,alpha,beta,gamma,delta,Mw,hvap_fuel
      real(C_DOUBLE) :: coef_cp(5)
@@ -52,7 +52,7 @@ module def_cylinder
      real*8,dimension(2) :: mean_exhaust_gamma
      type(gas_properties)::gas_properties
   end type cylinder
-  
+
   type (cylinder),dimension(:),allocatable :: cyl
   integer :: numcyl
 
@@ -85,7 +85,7 @@ contains
     allocate(cyl(icyl)%prop(l1))
     allocate(cyl(icyl)%U_crevice(l2))
     allocate(cyl(icyl)%data_crevice(l3))
-    
+
     do i=1,(l1)
        cyl(icyl)%prop(i) = prop(i-1)
     enddo
@@ -97,7 +97,7 @@ contains
     enddo
     return
   end subroutine initialize_arrays
-  
+
   subroutine initialize_fuel(icyl,fuelData) BIND(C)
     use, intrinsic :: ISO_C_BINDING
     integer(C_INT) :: icyl
@@ -114,7 +114,7 @@ contains
        cyl(icyl)%fuel_data%coef_cp(i) = fuelData%coef_cp(i-1)
     end do
   end subroutine initialize_fuel
-  
+
   subroutine initialize_scavenge(icyl,scavengeData) BIND(C)
     use, intrinsic :: ISO_C_BINDING
     integer(C_INT) :: icyl
@@ -125,7 +125,7 @@ contains
     cyl(icyl)%scavenge_data%close_cyl = scavengeData%close_cyl
     return
   end subroutine initialize_scavenge
-  
+
   subroutine initialize_injection(icyl,pulse,m_inj,dtheta_inj,T_fuel,theta_inj_ini, &
        theta_id, integral, mfdot_array, ignition_delay_model, l1) BIND(C)
     use, intrinsic :: ISO_C_BINDING
@@ -146,10 +146,10 @@ contains
        cyl(icyl)%injection_data%mfdot_array(i,1) = mfdot_array((i-1)*2)
        cyl(icyl)%injection_data%mfdot_array(i,2) = mfdot_array((i-1)*2 +1)
     enddo
-    
+
     return
   end subroutine initialize_injection
-  
+
   subroutine initialize_combustion(icyl,theta_ig_0, dtheta_comb, phi, phi_ig, a_wiebe, m_wiebe, &
        xbdot_array, combustion_model, start_comb, l1) BIND(C)
     use, intrinsic :: ISO_C_BINDING
@@ -172,9 +172,9 @@ contains
        cyl(icyl)%combustion_data%xbdot_array(i,1) = xbdot_array((i-1)*2)
        cyl(icyl)%combustion_data%xbdot_array(i,2) = xbdot_array((i-1)*2 +1)
     enddo
-    
+
   end subroutine initialize_combustion
-  
+
   subroutine initialize_intake_valves(icyl, ival, Nval, type_dat, angle_VO, angle_VC, &
        Dv, Lvmax, Cd, Lv, valve_model, l1, l2, dx_tube, Area_tube, twall_tube, &
        dAreax_tube, tube, theta_0, globalData) BIND(C)
@@ -187,7 +187,7 @@ contains
     type(dataSim) :: globalData
 
     real*8 :: Area_T
-    
+
     cyl(icyl)%intake_valves(ival)%tube        = tube
     cyl(icyl)%intake_valves(ival)%Nval        = Nval
     cyl(icyl)%intake_valves(ival)%type_dat    = type_dat
@@ -218,14 +218,14 @@ contains
     cyl(icyl)%intake_valves(ival)%Area  = Area_T
     cyl(icyl)%intake_valves(ival)%dArea = 0.
     cyl(icyl)%intake_valves(ival)%Area_max  = Nval*pi*Dv*Lvmax
-    
+
     cyl(icyl)%intake_valves(ival)%solved_case = 0
 
     cyl(icyl)%intake_valves(ival)%mass_res_port = 0.0d0
     cyl(icyl)%intake_valves(ival)%mass_flow_factor = 1.0d0
 
   end subroutine initialize_intake_valves
-  
+
   subroutine initialize_exhaust_valves(icyl, ival, Nval, type_dat, angle_VO, angle_VC, &
        Dv, Lvmax, Cd, Lv, valve_model, l1, l2, dx_tube, Area_tube, twall_tube, dAreax_tube, &
        tube, theta_0, globalData) BIND(C)
@@ -251,7 +251,7 @@ contains
     cyl(icyl)%exhaust_valves(ival)%Dv          = Dv
     cyl(icyl)%exhaust_valves(ival)%Lvmax       = Lvmax
     cyl(icyl)%exhaust_valves(ival)%valve_model = valve_model
-       
+
     allocate(cyl(icyl)%exhaust_valves(ival)%Cd(l1/2,2))
     allocate(cyl(icyl)%exhaust_valves(ival)%Lv(l2/2,2))
     do i=1,(l1/2)
@@ -291,7 +291,8 @@ contains
     integer(C_INT) :: icyl,ntemp
     real(C_DOUBLE) :: state_ini(0:((myData%nnod+myData%nnod_input)*myData%ndof)-1)
     real(C_DOUBLE) :: mass_C(6*(myData%nnod - myData%nvi - myData%nve ) )
-    real(C_DOUBLE) :: twall(myData%ntemp)
+	real*8,dimension(mydata%ntemp):: t_wall
+	real(C_DOUBLE) :: twall(0:mydata%ntemp-1)
 
 
     integer :: i,ival,idof
@@ -332,9 +333,9 @@ contains
        factor        = fa_ratio(1.0d0,y)
        ! cyl(icyl)%combustion_data%phi_ig = mass_fuel_ini/(mass_air_ini*factor)
     end if
-    
+
     EVC = cyl(icyl)%exhaust_valves(1)%angle_VC*180./pi
-    
+
     alpha = 0.0
     if(globalData%theta_cycle.eq.4.*pi) then
        if((theta.gt.theta_ig_0).and.(theta.le.theta_ig_f)) then
@@ -368,7 +369,7 @@ contains
                (theta.le.360.*(1.+2./myData%nvanes))) then
              ! Expansion, gas exhaust or partial valve overlap
              alpha = 1.0
-          elseif((theta.ge.0.).and.(theta.le.EVC)) then  
+          elseif((theta.ge.0.).and.(theta.le.EVC)) then
              ! Valve overlap with partial load
              alpha = 1.0-(theta-0.)/(EVC-0.)
           endif
@@ -459,11 +460,11 @@ contains
     !
     !
     use, intrinsic :: ISO_C_BINDING
-    
+
     implicit none
 
     real(C_DOUBLE) :: ga_exhaust
-    
+
     integer :: k,ncyl
     real*8 :: ga
 
@@ -484,8 +485,8 @@ contains
   subroutine solve_cylinder(icyl, myData, globalData, state, new_state, mass_C, twall) BIND(C)
     !
     !
-    !  solve_cylinder is called by: 
-    !  solve_cylinder calls the following subroutines and functions: 
+    !  solve_cylinder is called by:
+    !  solve_cylinder calls the following subroutines and functions:
     !    area_valve, solve_valve, cylinder_solver
     !
     use, intrinsic :: ISO_C_BINDING
@@ -494,7 +495,6 @@ contains
     real(C_DOUBLE) :: state(0:((myData%nnod+myData%nnod_input)*myData%ndof)-1)
     real(C_DOUBLE) :: new_state(0:(myData%nnod*myData%ndof)-1)
     real(C_DOUBLE) :: mass_C(6*(myData%nnod - myData%nvi - myData%nve ) )
-    real(C_DOUBLE) :: twall(myData%ntemp)
     integer(C_INT) :: icyl
 
     integer :: nnod_cyl,Nval,type_dat,i,j,ival
@@ -517,15 +517,21 @@ contains
          Ucyl_leading, Ucyl_trailing
     integer :: leading_cyl, trailing_cyl, solved_case
     real*8 :: theta_leading,theta_trailing,AreaT_leading,AreaT_trailing
+	real*8:: t_wall(mydata%ntemp)
+	real(C_DOUBLE) :: twall(0:mydata%ntemp-1)
+	
 
     logical :: flag
 
-    ! Actualmente Twall se recibe en myData (la primer posicion del arreglo, 
+    ! Actualmente Twall se recibe en myData (la primer posicion del arreglo,
     ! que en homogeneo ES la twall tradicional)
-    ! Ademas se recibe el arreglo completo por parámetro, y una bandera 
+    ! Ademas se recibe el arreglo completo por par?metro, y una bandera
     ! myData%nh_temp (true=NO homogenea, false=homogenea)
-    ! En Resumen estan los datos para implementar el cylinder con varias 
-    ! temperaturas, y además funciona la versión homogenea tal cual antes
+    ! En Resumen estan los datos para implementar el cylinder con varias
+    ! temperaturas, y adem?s funciona la versi?n homogenea tal cual antes
+	do i=1,mydata%ntemp
+		t_wall(i) = twall(i-1)
+	end do
 
     tol_Area = 1d-6
 
@@ -552,7 +558,7 @@ contains
        write(myData%nunit,901) globalData%icycle, theta*180/pi, globalData%time
 901    format (I12,F12.4,F15.10)
     endif
-    
+
     ! Get the cylinder state(s) from state vector
     do i=0,nnod_cyl-1
        do j=0,myData%ndof-1
@@ -660,7 +666,7 @@ contains
 
        ga    = globalData%ga_intake
        R_gas = globalData%R_gas
-       
+
        if(cyl(icyl)%intake_valves(ival)%valve_model.eq.1 .or. myData%full_implicit) then
           call rhschar(Uriv(:,ival), Area_P, dAreax_P, Twall_P, ga, R_gas, &
                globalData%dt, globalData%viscous_flow, globalData%heat_flow, RHS)
@@ -725,16 +731,16 @@ contains
              else
                 cyl(icyl)%intake_valves(ival)%solved_case = 0
                 Uthroat = cyl(icyl)%intake_valves(ival)%state
-                
+
                 Uref = cyl(icyl)%intake_valves(ival)%state_ref
 
                 call solve_valve_implicit(Ucyl, Uref, 1, Area_T, Area_P, &
                      RHSiv(:,ival), ga, Upipe, Uthroat, solved_case)
-                
+
                 if(solved_case.eq.0 .and. Area_T/Area_P.gt.1d-6) &
                      call solve_valve(Ucyl, Uriv(:,ival), 1, &
                      Area_T, Area_P, ga, R_gas, Upipe, Uthroat)
-                
+
                 if(any(isnan(Uthroat))) then
                    Uthroat = 2.*cyl(icyl)%intake_valves(ival)%state- &
                         cyl(icyl)%intake_valves(ival)%state_old
@@ -757,7 +763,7 @@ contains
           cyl(icyl)%intake_valves(ival)%state_old = &
                cyl(icyl)%intake_valves(ival)%state
           cyl(icyl)%intake_valves(ival)%state = Utiv(:,ival)
-          
+
           if(any(isnan(Utiv(:,ival)))) stop 'NAN in intake valve'
 
           if(cyl(icyl)%intake_valves(ival)%mass_res_port.gt.0. .and. &
@@ -881,7 +887,7 @@ contains
              else
                 cyl(icyl)%exhaust_valves(ival)%solved_case = 0
                 Uthroat = cyl(icyl)%exhaust_valves(ival)%state
-                
+
                 Uref = cyl(icyl)%exhaust_valves(ival)%state_ref
 
                 call solve_valve_implicit(Ucyl, Uref, -1, Area_T, Area_P, &
@@ -918,14 +924,14 @@ contains
           cyl(icyl)%exhaust_valves(ival)%state = Utev(:,ival)
        end if
     end do
-
+	
     if(myData%full_implicit) then
        ! Solves the cylinder and the valves in a monolythic system
        stop ' NO IMPLEMENTED '
     else
        ! Solves the cylinder
        call cylinder_solver(icyl, myData, globalData, Ucyl, Utiv, Utev, &
-            Uiv, Uev, Fiv, Fev, EGR, mass_cyl_old, mass_cyl)
+            Uiv, Uev, Fiv, Fev, EGR, mass_cyl_old, mass_cyl, t_wall)
     end if
 
     ! Actualizes the cylinder state(s)
@@ -955,17 +961,17 @@ contains
           mass_C(6*(i-1)+j+3) = mass_cyl(j,i)
        end do
     end do
-    
+
   end subroutine solve_cylinder
 
   subroutine geometry(myData, globalData, Vol, Area, Vdot)
     !
-    !  Computes the surface chamber area, the volume and 
+    !  Computes the surface chamber area, the volume and
     !    the volume time derivative
     !
     !  geometry is called by: state_initial_cylinder, ignition_delay,
     !    cylinder_solver
-    !  geometry calls the following subroutines and functions: 
+    !  geometry calls the following subroutines and functions:
     !    geometry_alternative, geometry_mrcvc
     !
     implicit none
@@ -984,11 +990,11 @@ contains
 
   subroutine geometry_alternative(myData, globalData, Vol, Area, Vdot)
     !
-    !  Computes the surface chamber area, the volume and 
+    !  Computes the surface chamber area, the volume and
     !    the volume time derivative for the alternative engine
     !
     !  geometry_alternative is called by: geometry
-    !  geometry_alternative calls the following subroutines and 
+    !  geometry_alternative calls the following subroutines and
     !    functions: none
     !
     implicit none
@@ -1013,10 +1019,10 @@ contains
     a   = myData%crank_radius      ! cranck radius
     Ach = myData%head_chamber_area ! cylinder head surface area
     Ap  = myData%piston_area       ! piston crown surface Area
-    
+
     ! Computing the stroke (distance between the cranck axis and piston pin axis)
     s1 = a*dcos(theta)+dsqrt(l**2-a**2*dsin(theta)**2)
-       
+
     sdot1 = -(a*dsin(theta)+a**2*dsin(2.0*theta)/2./ &
          dsqrt(l**2-a**2*dsin(theta)**2))
     if(globalData%engine_type.eq.1) then
@@ -1035,16 +1041,16 @@ contains
        !  Computing the volume rate (dV/dt)
        Vdot = -rpm*2*pi/60*pi*Bo**2/4*sdot1
     end if
-    
+
   end subroutine geometry_alternative
 
   subroutine heat_transfer(myData, globalData, Ucyl, &
-       Area, cp, dQ_ht)
+       Area, cp, dQ_ht, t_wall)
     !
     !  Computes the heat losses in the cylinder or chamber
     !
     !  heat_transfer is called by: cylinder_solver
-    !  heat_transfer calls the following subroutines and functions: 
+    !  heat_transfer calls the following subroutines and functions:
     !    heat_transfer_alternative, heat_transfer_mrcvc
     !
     implicit none
@@ -1054,10 +1060,11 @@ contains
     type(this), intent(in) :: myData
     type(dataSim), intent(in) :: globalData
     real*8, intent(out) :: dQ_ht
+	real*8,dimension(myData%ntemp) :: t_wall
 
     if(globalData%engine_type==0.or.globalData%engine_type==1) then
        call heat_transfer_alternative(myData, globalData, Ucyl, &
-            Area, cp, dQ_ht)
+            Area, cp, dQ_ht, t_wall)
     elseif(globalData%engine_type==2) then
        call heat_transfer_mrcvc(myData, globalData, Ucyl, &
             Area, cp, dQ_ht)
@@ -1066,9 +1073,10 @@ contains
   end subroutine heat_transfer
 
   subroutine heat_transfer_alternative(myData, globalData, Ucyl, &
-       Area, cp, dQ_ht)
+       Area, cp, dQ_ht, t_wall)
+    
     !
-    !  Computes the heat losses in the cylinder for alternative 
+    !  Computes the heat losses in the cylinder for alternative
     !    engines
     !
     !  model = 1 -> Annand model
@@ -1077,8 +1085,8 @@ contains
     !  model = 4 -> Taylor
     !
     !  heat_transfer_alternative is called by: heat_transfer
-    !  heat_transfer_alternative calls the following subroutines 
-    !    and functions: compute_cp, compute_visco, 
+    !  heat_transfer_alternative calls the following subroutines
+    !    and functions: compute_cp, compute_visco,
     !    average_piston_speed
     !
     implicit none
@@ -1089,16 +1097,26 @@ contains
     type(dataSim), intent(in) :: globalData
     real*8, intent(out) :: dQ_ht
 
-    integer :: ispecie
-    real*8 :: Bo,l,a,Twall,rho,p,T
+    integer :: ispecie,i,m
+    real*8 :: Bo,l,a,rho,p,T,twall,Ach,Ap,Area_n,A_restante
     real*8 :: mu,Pr,kappa,Sp,Re,Nu
-    real*8 :: factor,C_h,C_r,dQ_hth,dQ_htr
+    real*8 :: factor,C_h,dQ_hth,dQ_htr,C_r_medio
+	real*8, dimension(myData%ntemp) :: C_r,t_wall
 
     Bo    = myData%Bore         ! bore
     l     = myData%rod_length   ! connecting rod length
     a     = myData%crank_radius ! cranck radius
-    Twall = myData%Twall        ! cylinder wall temperature
-
+	Ach = myData%head_chamber_area ! cylinder head surface area
+    Ap  = myData%piston_area       ! piston crown surface Area 
+	Area_n = pi*Bo*2*a/(myData%ntemp-2) ! section piston wall area
+	m = floor((Area-Ap-Ach)/Area_n) ! number of sections
+	A_restante = Area-Ach-Ap-m*Area_n ! remaining piston wall area 
+	
+	!DEBUG
+	!if (myData%ntemp.gt.1) then
+	!	write(*,*) "DEBUG (heat_transfer_alternative): m=",m," A_restante=",A_restante, " Twall=[", t_wall(1), t_wall(2), t_wall(3), "]"
+	!end if
+	
     rho = Ucyl(1)
     p   = Ucyl(2)
     T   = Ucyl(3)
@@ -1142,23 +1160,64 @@ contains
 
     ! Heat transfer coefficient
     C_h = Nu*kappa/Bo
-    C_r = 0.0d0
-    if(myData%type_ig.eq.0) then
-       ! SI Engine
-       C_r = 4.25d-9*((T**2+Twall**2)*(T+Twall))
-    elseif(myData%type_ig.eq.1) then
-       ! CI Engine
-       C_r = 3.2602d-8*((T**2+Twall**2)*(T+Twall))
-    endif
 
-    dQ_hth = Area*C_h*(T-Twall)
-    dQ_htr = Area*C_r*(T-Twall)
-    dQ_ht = dQ_hth + dQ_htr
+	dQ_hth=0
+	dQ_htr=0
+	C_r_medio=0
+		
+	do i = 1,m+2
+		twall = t_wall(i)
+		
+		if(myData%type_ig.eq.0) then
+			! SI Engine
+			C_r(i) = 4.25d-9*((T*l*2+twall**2)*(T+twall))
+		elseif(myData%type_ig.eq.1) then
+			! CI Engine
+			C_r(i) = 3.2602d-8*((T**2+twall**2)*(T+twall))
+		endif
+		C_r_medio=C_r_medio+C_r(i)
+		
+		!Cylinder head heat transfer
+		if (i.eq.1) then
+			dQ_hth = dQ_hth + Ach * C_h * (T-twall)
+			dQ_htr = dQ_htr + Ach * C_r(i) * (T-twall)
+		!Piston crown heat transfer
+		else if (i.eq.2) then
+			dQ_hth = dQ_hth + Ap * C_h * (T-twall)
+			dQ_htr = dQ_htr + Ap * C_r(i) * (T-twall)
+		!Cylinder wall heat transfer
+		else
+			dQ_hth = dQ_hth + Area_n * C_h * (T-twall)
+			dQ_htr = dQ_htr + Area_n * C_r(i) * (T-twall)
+		endif			
+	end do
+		
+	!Calculates heat transfer in the last cylinder wall section
+		
+	if ((A_restante.ne.0).and.((m+2).lt.mydata%ntemp)) then
+		twall = t_wall(m+3)
+		if(myData%type_ig.eq.0) then
+			! SI Engine
+			C_r(m+3) = 4.25d-9*((T*l*2+twall**2)*(T+twall))
+		elseif(myData%type_ig.eq.1) then
+			! CI Engine
+			C_r(m+3) = 3.2602d-8*((T**2+twall**2)*(T+twall))
+		endif
+		C_r_medio=(C_r_medio+C_r(m+3))/(m+3)
+		
+		dQ_hth = dQ_hth +  A_restante * C_h * (T-twall)
+		dQ_htr = dQ_htr + A_restante * C_r(m+3) * (T-twall)
+	else
+		C_r_medio=C_r_medio/(m+2)
+	end if
+	
+	dQ_ht =  dQ_hth + dQ_htr
+
     if(globalData%save_extras) then
-       write(myData%nunit,902) C_h, C_r, dQ_hth, dQ_htr
+       write(myData%nunit,902) C_h, C_r_medio, dQ_hth, dQ_htr
 902    format (F12.6,F12.6,E15.6,E15.6)
     endif
-    
+
   end subroutine heat_transfer_alternative
 
   subroutine SI_combustion(icyl, theta, mass_fuel, omega, theta_cycle, &
@@ -1255,9 +1314,9 @@ contains
        dtheta_di = dtheta_comb-dtheta_p
        pot       = -a*(modulo(theta-theta_ig,theta_cycle)/dtheta_p)**(mp+1.)
        pote      = -a*(modulo(theta-theta_ig,theta_cycle)/dtheta_di)**(mdi+1.)
-       
+
        x_burned = 1.0d0 - x_p*dexp(pot) - x_di*dexp(pote)
-       
+
        xbdot = x_p*dexp(pot)*a*(mp+1.)* &
             (modulo(theta-theta_ig,theta_cycle)/dtheta_p)**mp/dtheta_p
        xbdot = xbdot + x_di*dexp(pote)*a*(mdi+1.)* &
@@ -1285,10 +1344,10 @@ contains
        pot_p = -WCp*(modulo(theta-theta_ig,theta_cycle)*180.0d0/pi)**Ep
        pot_m = -WCm*(modulo(theta-theta_ig,theta_cycle)*180.0d0/pi)**Em
        pot_t = -WCt*(modulo(theta-theta_ig,theta_cycle)*180.0d0/pi)**Et
-       
+
        x_burned = Fp*(1.0d0 - dexp(pot_p)) + Fm*(1.0d0 - dexp(pot_m)) + &
             Ft*(1.0d0 - dexp(pot_t))
-       
+
        xbdot =         Fp*dexp(pot_p) * WCp * Ep * &
             (modulo(theta-theta_ig,theta_cycle)*180.0d0/pi)**(Ep-1.0)
        xbdot = xbdot + Fm*dexp(pot_m) * WCm * Em * &
@@ -1345,7 +1404,7 @@ contains
        write(nunit,903) x_burned, xbdot
 903    format (F12.8,F12.6)
     endif
-    
+
   end subroutine CI_combustion
 
   subroutine comp_scavenge(icyl, mass_cyl, SE)
@@ -1370,7 +1429,7 @@ contains
     y   = cyl(icyl)%fuel_data%y
 
     factor = fa_ratio(phi,y)
-    
+
     SE = dmax1(1.0d0 - dexp(M*SRv+C),0.0d0)
     if(cyl(icyl)%scavenge_data%close_cyl.and.(SRv.gt.0.)) then
        mass_tr     = sum(mass_cyl(1:3))
@@ -1388,7 +1447,7 @@ contains
     !
     !  Computes the scavenge ratio by volume
     !
-    !  scavenge_ratio is called by: 
+    !  scavenge_ratio is called by:
     !  scavenge_ratio calls the following subroutines and functions: none
     !
     implicit none
@@ -1504,7 +1563,7 @@ contains
     real*8, intent(in) :: theta,theta_cycle,theta_id,theta_ig_0,dtheta_comb
     real*8, dimension(3), intent(inout) :: mass_cyl
 
-    if(theta_id.ne.0.0 .and. & 
+    if(theta_id.ne.0.0 .and. &
          modulo(theta-theta_ig_0,theta_cycle) .gt. dtheta_comb .and. &
          .not.(cyl(icyl)%combustion_data%start_comb)) then
        mass_cyl(1)     = 0.0d0
@@ -1564,11 +1623,11 @@ contains
        mass_cyl(1) = (1.-xb)*mass_fuel
        mass_cyl(2) = (1.-xb)*mass_air
        mass_cyl(3) = mass_res+xb*(mass_fuel+mass_air)
-       
+
        mass_cyl(1) = dmax1(mass_cyl(1),0.0d0)
        mass_cyl(2) = dmax1(mass_cyl(2),0.0d0)
        mass_cyl(3) = dmax1(mass_cyl(3),0.0d0)
-       
+
     else
        if(.not.cyl(icyl)%combustion_data%start_comb) &
             cyl(icyl)%combustion_data%start_comb = .true.
@@ -1597,7 +1656,7 @@ contains
 
     real*8 :: theta_inj_ini,dtheta_inj,delta_mass_fuel
     real*8 :: f_st,phi
-    
+
     theta_inj_ini = cyl(icyl)%injection_data%theta_inj_ini
     dtheta_inj    = cyl(icyl)%injection_data%dtheta_inj
 
@@ -1606,7 +1665,7 @@ contains
     if(modulo(theta-theta_inj_ini,theta_cycle) .ge. 0.0 .and. &
          modulo(theta-theta_inj_ini,theta_cycle) .le. dtheta_inj) then
        call mass_injection(icyl, theta, rpm, dt, delta_mass_fuel)
-       
+
        f_st = fa_ratio(1.0d0, cyl(icyl)%fuel_data%y)
        phi  = cyl(icyl)%combustion_data%phi
        phi  = phi + (1.+phi*f_st)/((mass_cyl(1)+mass_cyl(2))*f_st)* &
@@ -1635,7 +1694,7 @@ contains
 
     real*8 :: m_inj,theta_inj_ini,dtheta_inj
     real*8 :: mass_dot,omega
- 
+
     omega = rpm*pi/ 30.
 
     theta_inj_ini = cyl(icyl)%injection_data%theta_inj_ini
@@ -1675,7 +1734,7 @@ contains
     real*8, dimension(nve), intent(in) :: mass_out
     real*8, dimension(3), intent(in) :: mass_cyl_old
     real*8, dimension(3), intent(out) :: mass_cyl
-    
+
     integer :: ival
     real*8 :: mass_old, xr, phi, y, factor
     real*8 :: delta_mass_air, delta_mass_fuel, delta_mass_res
@@ -1727,9 +1786,9 @@ contains
                dt*(1.-xr)*mass_out(ival)/(1.+factor)
        end if
     end do
-    
+
     delta_mass_fuel = factor*delta_mass_air
-    
+
     mass_cyl(1) = dmax1(mass_cyl_old(1)+delta_mass_fuel,0.0d0)
     mass_cyl(2) = dmax1(mass_cyl_old(2)+delta_mass_air,0.0d0)
     mass_cyl(3) = dmax1(mass_cyl_old(3)+delta_mass_res,0.0d0)
@@ -1737,7 +1796,7 @@ contains
   end subroutine comp_cyl_masses
 
   subroutine cylinder_solver(icyl, myData, globalData, Ucyl, Uiv, Uev, &
-       Upiv, Upev, Fiv, Fev, EGR, mass_cyl_old, mass_cyl)
+       Upiv, Upev, Fiv, Fev, EGR, mass_cyl_old, mass_cyl, t_wall)
     !
     !
     !
@@ -1757,9 +1816,10 @@ contains
     real*8, dimension(3,cyl(icyl)%nvi), intent(in) :: Uiv,Upiv
     real*8, dimension(3,cyl(icyl)%nve), intent(in) :: Uev,Upev
     type(this), intent(in) :: myData
-    type(dataSim), intent(in) :: globalData 
+    type(dataSim), intent(in) :: globalData
     real*8, dimension(3), intent(inout) :: Ucyl
     real*8, dimension(3), intent(out) :: mass_cyl
+	real*8,dimension(mydata%ntemp):: t_wall
 
     integer :: ispecie,type_ig, nunit, engine_type
     real*8 :: dt,rpm,theta_g,theta,theta_cycle
@@ -1773,7 +1833,7 @@ contains
     logical :: save_extras
 
     real*8, dimension(3) :: Ucyl_old
-    
+
     theta_cycle = globalData%theta_cycle
     dt          = globalData%dt
     rpm         = globalData%rpm
@@ -1802,7 +1862,7 @@ contains
     call geometry(myData, globalData, Vol, Area, Vdot)
     ! Computing heat losses
     call heat_transfer(myData, globalData, Ucyl, Area, &
-         cyl(icyl)%gas_properties%cp, dQ_ht)
+         cyl(icyl)%gas_properties%cp, dQ_ht, t_wall)
     ! Computing the fuel mass, air mass and gas residual mass into the cylinder
     call comp_cyl_masses(icyl, cyl(icyl)%nvi, cyl(icyl)%nve, dt, mass_in, &
          mass_out, EGR, mass_cyl_old, mass_cyl)
@@ -1832,14 +1892,14 @@ contains
     edot    = (sum(h_in)+sum(h_out))-p_cyl*Vdot+dQ_chem-(dQ_ht+dQ_ht_fuel)
     ene_old = mass_old*cyl(icyl)%gas_properties%cv*T_cyl
     ene_new = ene_old + dt*edot
-    
+
     ! Continuity equation
     rho_cyl = mass_new/Vol
     ! Energy equation
     T_cyl  = ene_new/(mass_new*cyl(icyl)%gas_properties%cv)
     ! State equation
     p_cyl  = rho_cyl*cyl(icyl)%gas_properties%R_gas*T_cyl
-    
+
     Ucyl(1) = rho_cyl
     Ucyl(2) = p_cyl
     Ucyl(3) = T_cyl
@@ -1880,7 +1940,7 @@ contains
 
     Torque = 0.0
     call fun_cyl_Torque(myData, globalData, p_cyl, theta, Torque)
-    
+
     if(globalData%save_extras) then
        write(myData%nunit,900) sum(mass_in), sum(mass_out), Vol, Vdot, &
             mass_cyl, dQ_ht, dQ_chem, Torque
@@ -1904,7 +1964,7 @@ contains
     type(this), intent(in) :: myData
     type(dataSim), intent(in) :: globalData
     real*8, dimension(:,:), intent(out) :: AVPT
-    
+
     real*8 :: rho_i,T_i,p_i,phi,y,Q_fuel,factor,AF
 
     Q_fuel = cyl(icyl)%fuel_data%Q_fuel
@@ -1934,7 +1994,7 @@ contains
   subroutine ideal_cycle_4S(myData, globalData, Q_LHV, T_i, p_i, &
        AF, AVPT)
     !
-    !  AVPT = [angle , density , pressure , temperature ] 
+    !  AVPT = [angle , density , pressure , temperature ]
     !
     !  ideal_cycle_4S is called by: run_ideal_cycle
     !  ideal_cycle_4S calls the following subroutines and functions: none
@@ -2027,13 +2087,13 @@ contains
     AVPT(:,2) = (/rho1,rho2,rho3,rho4,rho5,rho6,rho7/)
     AVPT(:,3) = (/p1,p2,p3,p4,p5,p6,p7/)
     AVPT(:,4) = (/T1,T2,T3,T4,T5,T6,T7/)
-    
+
   end subroutine ideal_cycle_4S
 
   subroutine ideal_cycle_2S(myData, globalData, Q_LHV, T_i, p_i, &
        AF, AVPT)
     !
-    !      AVPT = [angle , density , pressure , temperature ] 
+    !      AVPT = [angle , density , pressure , temperature ]
     !
     !  ideal_cycle_2S is called by: run_ideal_cycle
     !  ideal_cycle_2S calls the following subroutines and functions: none
@@ -2162,19 +2222,19 @@ contains
   subroutine fun_cyl_Torque(myData, globalData, pcyl, theta, Torque)
 
     implicit none
-    
+
     real*8, intent(in) :: pcyl, theta
     type(this), intent(in) :: myData
-    type(dataSim), intent(in) :: globalData 
+    type(dataSim), intent(in) :: globalData
     real*8, intent(inout) :: Torque
-    
+
     real*8 :: lambda,Area_piston
     real*8 :: crank_radius,rod_length
     real*8 :: exce,piston_mass,rod_mass,rod_a,rod_b,mass_A,mass_B,mass_t
     real*8 :: sin_phi,cos_phi,tan_phi
     real*8 :: kphi,ks,kphiprime,ksprime
     real*8 :: inercia_J_AB,crankcase_pressure, inercia_crank
-    
+
     Area_piston  = pi/4.0*myData%Bore**2
     crank_radius = myData%crank_radius
     rod_length   = myData%rod_length
@@ -2184,14 +2244,14 @@ contains
     rod_mass    = 0.0
     rod_a       = 0.0*rod_length;
     rod_b       = rod_length-rod_a
-    
-    mass_B      = rod_a/rod_length*rod_mass 
+
+    mass_B      = rod_a/rod_length*rod_mass
     mass_A      = rod_b/rod_length*rod_mass
     mass_t      = piston_mass+mass_B
-    
+
     inercia_J_AB  = 0.0
     inercia_crank = 0.0
-    
+
     !theta     = globalData%theta_sim1d
     !theta_cyl = globalData%theta+myData%theta_0;
     ! Modificado Black (04/12/07)
@@ -2199,9 +2259,9 @@ contains
     !theta_cyl = modulo(theta_cyl,myData%nstroke*pi)
     ! Fin modificado Black (04/12/07)
     !theta     = theta_cyl
-    
+
     crankcase_pressure = 0.0
-    
+
     sin_phi   = (lambda*dsin(theta)-exce/rod_length)
     cos_phi   = dsqrt(1.0d0-sin_phi**2)
     tan_phi   = sin_phi/cos_phi
