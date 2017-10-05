@@ -21,4 +21,34 @@ make install
 #cd $HOME/icesym/ICESYM-GUI/
 #DISPLAY=:0 python2.7 SimulatorGUI.py
 
-pause
+echo ""
+echo "ICEsym se ha instalado correctamente."
+echo "Carpeta de instalacion: "
+echo "     $HOME/icesym/ICESYM-1D/src"
+echo ""
+echo "Estos son los archivos en la carpeta de icesym:"
+ls
+echo ""
+echo ""
+echo "Para ejecutar el programa, modifique el archivo exec.py para que"
+echo "apunte al archivo deseado con los parametros."
+echo "Puede realizar esta tarea ejecutando:"
+echo "      nano exec.py"
+echo "Luego ejecute:"
+echo "      python exec.py"
+echo ""
+echo ""
+echo "Para volver a ejecutar icesym luego de cerrar esta ventana:"
+echo " 1- Abra Cygwin64 Terminal."
+echo " 2- Cambie al directorio donde se encuentra icesym:"
+echo "      cd $HOME/icesym/ICESYM-1D/src"
+echo " 3- Ejecute el programa: "
+echo "      python exec.py"
+echo ""
+echo ""
+echo "Puede acceder a los archivos de icesym desde el explorador de Windows"
+echo "en la siguiente ruta (Cambie '/' por '\'): "
+echo " C:\cygwin64$HOME/icesym/ICESYM-1D/src"
+
+
+bash
