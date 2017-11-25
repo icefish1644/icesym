@@ -82,7 +82,7 @@ class formSimulation(wx.Dialog):
     def __set_properties(self):
         # begin wxGlade: formSimulation.__set_properties
         self.SetTitle("Configure Simulation")
-        self.SetSize(wx.DLG_SZE(self, (300, 230)))
+        self.SetSize(wx.DLG_UNIT(self, wx.Size(300, 230)))
         self.SetFont(wx.Font(8, wx.DEFAULT, wx.NORMAL, wx.NORMAL, 0, ""))
         self.label_0.SetFont(wx.Font(8, wx.DEFAULT, wx.NORMAL, wx.NORMAL, 0, "Sans"))
         self.data['rpms'].SetFont(wx.Font(8, wx.DEFAULT, wx.NORMAL, wx.NORMAL, 0, "Sans"))
@@ -130,7 +130,7 @@ class formSimulation(wx.Dialog):
         self.data['get_state'].SetFont(wx.Font(8, wx.DEFAULT, wx.NORMAL, wx.NORMAL, 0, "Sans"))
         self.data['get_state'].SetSelection(0)
         self.label_15.SetFont(wx.Font(8, wx.DEFAULT, wx.NORMAL, wx.NORMAL, 0, "Sans"))
-        self.button_1.SetMinSize(wx.DLG_SZE(self.button_1, (44, 10)))
+        self.button_1.SetMinSize(wx.DLG_UNIT(self.button_1, wx.Size(44, 10)))
         self.button_1.Enable(False)
         self.button_1.SetFont(wx.Font(8, wx.DEFAULT, wx.NORMAL, wx.NORMAL, 0, "Sans"))
         self.filename.SetFont(wx.Font(8, wx.DEFAULT, wx.NORMAL, wx.BOLD, 0, ""))
@@ -143,8 +143,8 @@ class formSimulation(wx.Dialog):
         self.notebook_saves.SetScrollRate(10, 10)
         self.configure_notebook.SetFont(wx.Font(8, wx.DEFAULT, wx.NORMAL, wx.NORMAL, 0, ""))
         self.panel_configure.SetFont(wx.Font(8, wx.DEFAULT, wx.NORMAL, wx.NORMAL, 0, "Sans"))
-        self.accept.SetMinSize(wx.DLG_SZE(self.accept, (52, 16)))
-        self.cancel.SetMinSize(wx.DLG_SZE(self.cancel, (52, 16)))
+        self.accept.SetMinSize(wx.DLG_UNIT(self.accept, wx.Size(52, 16)))
+        self.cancel.SetMinSize(wx.DLG_UNIT(self.cancel, wx.Size(52, 16)))
         # end wxGlade
 
     def __do_layout(self):

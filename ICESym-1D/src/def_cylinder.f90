@@ -519,7 +519,7 @@ contains
     real*8 :: theta_leading,theta_trailing,AreaT_leading,AreaT_trailing
 	real*8:: t_wall(mydata%ntemp)
 	real(C_DOUBLE) :: twall(0:mydata%ntemp-1)
-	
+
 
     logical :: flag
 
@@ -924,7 +924,7 @@ contains
           cyl(icyl)%exhaust_valves(ival)%state = Utev(:,ival)
        end if
     end do
-	
+
     if(myData%full_implicit) then
        ! Solves the cylinder and the valves in a monolythic system
        stop ' NO IMPLEMENTED '
@@ -1074,7 +1074,7 @@ contains
 
   subroutine heat_transfer_alternative(myData, globalData, Ucyl, &
        Area, cp, dQ_ht, t_wall)
-    
+
     !
     !  Computes the heat losses in the cylinder for alternative
     !    engines
@@ -1107,16 +1107,16 @@ contains
     l     = myData%rod_length   ! connecting rod length
     a     = myData%crank_radius ! cranck radius
 	Ach = myData%head_chamber_area ! cylinder head surface area
-    Ap  = myData%piston_area       ! piston crown surface Area 
+    Ap  = myData%piston_area       ! piston crown surface Area
 	Area_n = pi*Bo*2*a/(myData%ntemp-2) ! section piston wall area
 	m = floor((Area-Ap-Ach)/Area_n) ! number of sections
-	A_restante = Area-Ach-Ap-m*Area_n ! remaining piston wall area 
-	
+	A_restante = Area-Ach-Ap-m*Area_n ! remaining piston wall area
+
 	!DEBUG
 	!if (myData%ntemp.gt.1) then
 	!	write(*,*) "DEBUG (heat_transfer_alternative): m=",m," A_restante=",A_restante, " Twall=[", t_wall(1), t_wall(2), t_wall(3), "]"
 	!end if
-	
+
     rho = Ucyl(1)
     p   = Ucyl(2)
     T   = Ucyl(3)
@@ -1164,10 +1164,10 @@ contains
 	dQ_hth=0
 	dQ_htr=0
 	C_r_medio=0
-		
+
 	do i = 1,m+2
 		twall = t_wall(i)
-		
+
 		if(myData%type_ig.eq.0) then
 			! SI Engine
 			C_r(i) = 4.25d-9*((T*l*2+twall**2)*(T+twall))
@@ -1175,25 +1175,28 @@ contains
 			! CI Engine
 			C_r(i) = 3.2602d-8*((T**2+twall**2)*(T+twall))
 		endif
-		C_r_medio=C_r_medio+C_r(i)
-		
+
+
 		!Cylinder head heat transfer
 		if (i.eq.1) then
+		    C_r_medio=C_r_medio+C_r(i)*Ach
 			dQ_hth = dQ_hth + Ach * C_h * (T-twall)
 			dQ_htr = dQ_htr + Ach * C_r(i) * (T-twall)
 		!Piston crown heat transfer
 		else if (i.eq.2) then
+		    C_r_medio=C_r_medio+C_r(i)*Ap
 			dQ_hth = dQ_hth + Ap * C_h * (T-twall)
 			dQ_htr = dQ_htr + Ap * C_r(i) * (T-twall)
 		!Cylinder wall heat transfer
 		else
+		    C_r_medio=C_r_medio+C_r(i)*Area_n
 			dQ_hth = dQ_hth + Area_n * C_h * (T-twall)
 			dQ_htr = dQ_htr + Area_n * C_r(i) * (T-twall)
-		endif			
+		endif
 	end do
-		
+
 	!Calculates heat transfer in the last cylinder wall section
-		
+
 	if ((A_restante.ne.0).and.((m+2).lt.mydata%ntemp)) then
 		twall = t_wall(m+3)
 		if(myData%type_ig.eq.0) then
@@ -1203,15 +1206,19 @@ contains
 			! CI Engine
 			C_r(m+3) = 3.2602d-8*((T**2+twall**2)*(T+twall))
 		endif
-		C_r_medio=(C_r_medio+C_r(m+3))/(m+3)
-		
+		C_r_medio=C_r_medio+C_r(m+3)*A_restante
+
 		dQ_hth = dQ_hth +  A_restante * C_h * (T-twall)
 		dQ_htr = dQ_htr + A_restante * C_r(m+3) * (T-twall)
-	else
-		C_r_medio=C_r_medio/(m+2)
 	end if
-	
+
+	C_r_medio=C_r_medio/Area
+
 	dQ_ht =  dQ_hth + dQ_htr
+
+	!DEBUG
+	!write(*,*) "DEBUG (heat_transfer_alternative): dQ_ht=",dQ_ht," dQ_hth=",dQ_hth," dQ_htr=",dQ_htr
+	!write(*,*) "DEBUG (heat_transfer_alternative): C_r=[", C_r(1), C_r(2), C_r(3), "], C_r_medio=", C_r_medio
 
     if(globalData%save_extras) then
        write(myData%nunit,902) C_h, C_r_medio, dQ_hth, dQ_htr

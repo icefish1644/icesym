@@ -8,13 +8,13 @@ cdef extern from "tube.h":
 		int (* at)(unsigned int index)
 		void acc "operator[]"(unsigned int index)
 	intvec intvec_factory "std::vector<int>"(int len)
-    
+
 	ctypedef struct doublevec "std::vector<double>":
 		void (* push_back)(double elem)
 		double (* at)(unsigned int index)
 		void acc "operator[]"(unsigned int index)
 	doublevec doublevec_factory "std::vector<double>"(int len)
-            
+
     #tipo de dato clase tube
 	ctypedef struct c_Tube "Tube":
 		unsigned int nnod
@@ -32,36 +32,41 @@ cdef extern from "tube.h":
 		doublevec twall
 		doublevec dAreax
 		doublevec curvature
+		double Text
+		double esp
+		double K
+		double Ts
 		char* tleft
 		unsigned int nleft
 		char* tright
 		unsigned int nright
 		int type
-       	
-	c_Tube *new_Tube "new Tube" (unsigned int nnod, unsigned int ndof, 
-				     unsigned int nnod_input, int implicit, 
-				     doublevec state_ini, intvec histo, 
-				     char* label, double longitud, 
-				     doublevec xnod, doublevec Area, 
-				     doublevec twall, doublevec curvature, 
-				     doublevec dAreax, char* tleft, 
-				     unsigned int nleft, char* tright, 
+
+	c_Tube *new_Tube "new Tube" (unsigned int nnod, unsigned int ndof,
+				     unsigned int nnod_input, int implicit,
+				     doublevec state_ini, intvec histo,
+				     char* label, double longitud,
+				     doublevec xnod, doublevec Area,
+				     doublevec twall, doublevec curvature,
+				     doublevec dAreax,
+				     double Text, double esp, double K, doublevec Ts,
+				     char* tleft, unsigned int nleft, char* tright,
 				     unsigned int nright, int type)
 	void del_Tube "delete" (c_Tube *tube)
 	c_Tube copyTube "new Tube" (c_Tube* t)
-	
+
 #defino la clase
 cdef class Tube:
 	cdef c_Tube *thisptr
-    
+
 	def __cinit__(self, **kargs):
-    	
+
 		cdef unsigned int nnod 	     = validatePositive(kargs,'nnod','Tube')
 		cdef unsigned int ndof 	     = validatePositive(kargs,'ndof','Tube')
 		cdef unsigned int nnod_input = validatePositive(kargs,'nnod_input','Tube',2)
 		kargs['implicit']	     = assignOptional(kargs,'implicit',0)
 		cdef int implicit 	     = boolean(kargs,'implicit','Tube')
-			
+
 		onlyAssert(kargs,'state_ini','Tube')
 		cdef doublevec state_ini = doublevec_factory(0)
 
@@ -81,14 +86,14 @@ cdef class Tube:
 
 		s =  assignOptional(kargs,'label','tube_default')
 		cdef char* label =  s
-				
+
 		cdef double longitud = validatePositive(kargs,'longitud','Tube')
-		
+
 		validateSize(kargs,'xnod','Tube',nnod)
 		cdef doublevec xnod = doublevec_factory(0)
 		for i in range(nnod):
 			xnod.push_back(kargs['xnod'][i])
-    	
+
 		if not('Area' in kargs.keys()):
 			if not('diameter' in kargs.keys()):
 				print 'Fail inicialitation in Tube, area and diameter not exists'
@@ -102,32 +107,53 @@ cdef class Tube:
 		cdef doublevec Area = doublevec_factory(0)
 		for i in range(nnod):
 			Area.push_back(kargs['Area'][i])
-			
-		validateSize(kargs,'twall','Tube',nnod)
+
 		cdef doublevec twall = doublevec_factory(0)
-		for i in range(nnod):
-			twall.push_back(kargs['twall'][i])
-			
+		if('twall' in kargs.keys()):
+			validateSize(kargs,'twall','Tube',nnod)
+			for i in range(nnod):
+				twall.push_back(kargs['twall'][i])
+		else:
+			kargs['twall'] = assignOptional(kargs, 'twall', []);
+			for i in range(nnod):
+				twall.push_back(0)
+			print "Warning: twall in tube not defined. Ignore if heat_flow=2."
+
 		cdef doublevec dAreax = doublevec_factory(0)
 		kargs['dAreax'] = assignOptional(kargs, 'dAreax', []);
 		if(len(kargs['dAreax'])>0):
 			validateSize(kargs,'dAreax','Tube',nnod)
 			for i in range(nnod):
 				dAreax.push_back(kargs['dAreax'][i])
-			
+
 		if (not(hasattr(kargs,'curvature'))):
 			kargs['curvature'] = zeros(nnod)
 		cdef doublevec curvature = doublevec_factory(0)
 		for i in range(nnod):
 			curvature.push_back(kargs['curvature'][i])
-		
+
+		cdef double K = assignOptional(kargs, 'K', 0)
+		cdef double Text = assignOptional(kargs, 'Text', 0)
+		cdef double esp = assignOptional(kargs, 'esp', 0)
+
+		cdef doublevec Ts = doublevec_factory(0)
+		kargs['Ts'] = assignOptional(kargs, 'Ts', []);
+		if(len(kargs['Ts'])>0):
+			validateSize(kargs,'Ts','Tube',nnod)
+			for i in range(nnod):
+				Ts.push_back(kargs['Ts'][i])
+		else:
+			#Ts = twall
+			for i in range(nnod):
+				Ts.push_back(Text)
+
 		s = onlyAssert(kargs,'tleft','Tubes')
 		cdef char* tleft = s
 		s = onlyAssert(kargs,'tright','Tubes')
 		cdef char* tright = s
 		cdef unsigned int nleft  = onlyAssert(kargs,'nleft','Tube')
 		cdef unsigned int nright = onlyAssert(kargs,'nright','Tube')
-		
+
 		cdef int type
 		if('type' in kargs.keys()):
 			validateInList(kargs,'type','Tube', ['intake', 'exhaust'], 'none')
@@ -141,11 +167,11 @@ cdef class Tube:
 			# raise ValueError
 			type = 1
 
-		self.thisptr = new_Tube(nnod, ndof, nnod_input, implicit, 
-					state_ini,histo, label, longitud, 
-					xnod, Area, twall, curvature, dAreax, 
+		self.thisptr = new_Tube(nnod, ndof, nnod_input, implicit,
+					state_ini,histo, label, longitud,
+					xnod, Area, twall, curvature, dAreax,
+					Text, esp, K, Ts,
 					tleft, nleft, tright, nright, type)
-        
+
 	def __dealloc__(self):
 		del_Tube(self.thisptr)
-   

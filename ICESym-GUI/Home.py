@@ -97,17 +97,17 @@ class Home(wx.Frame):
         self.Components = wx.Menu()
         New = wx.Menu()
         self.Junction = wx.MenuItem(New, 40, "Junction", "Add new Junction to simulation", wx.ITEM_NORMAL)
-        New.AppendItem(self.Junction)
+        New.Append(self.Junction)
         self.Tank = wx.MenuItem(New, 41, "Tank", "Add new Tank to simulation", wx.ITEM_NORMAL)
-        New.AppendItem(self.Tank)
+        New.Append(self.Tank)
         self.Cylinder = wx.MenuItem(New, 42, "Cylinder", "Add new Cylinder to Simulation", wx.ITEM_NORMAL)
-        New.AppendItem(self.Cylinder)
+        New.Append(self.Cylinder)
         self.Tube = wx.MenuItem(New, 43, "Tube", "Add new Tube to Simulation", wx.ITEM_NORMAL)
-        New.AppendItem(self.Tube)
+        New.Append(self.Tube)
         self.Atmosphere = wx.MenuItem(New, 44, "Atmosphere", "Add new Atmosphere to simulation", wx.ITEM_NORMAL)
-        New.AppendItem(self.Atmosphere)
+        New.Append(self.Atmosphere)
         self.Valve = wx.MenuItem(New, 45, "Valve", "New Valve", wx.ITEM_NORMAL)
-        New.AppendItem(self.Valve)
+        New.Append(self.Valve)
         self.Components.AppendMenu(wx.NewId(), "New", New, "")
         self.home_menubar.Append(self.Components, "Components")
         self.Help = wx.Menu()
@@ -119,7 +119,7 @@ class Home(wx.Frame):
         self.SetMenuBar(self.home_menubar)
         # Menu Bar end
         self.home_statusbar = self.CreateStatusBar(1, 0)
-        
+
         # Tool Bar
         self.home_toolbar = wx.ToolBar(self, -1)
         self.SetToolBar(self.home_toolbar)
@@ -212,7 +212,7 @@ class Home(wx.Frame):
     def __set_properties(self):
         # begin wxGlade: Home.__set_properties
         self.SetTitle("ICESym-GUI")
-        self.SetSize(wx.DLG_SZE(self, (314, 314)))
+        self.SetSize(wx.DLG_UNIT(self, wx.Size(314, 314)))
         self.SetFont(wx.Font(8, wx.DEFAULT, wx.NORMAL, wx.NORMAL, 0, "Sans"))
         self.home_statusbar.SetStatusWidths([-1])
         # statusbar fields
@@ -227,7 +227,7 @@ class Home(wx.Frame):
         self.canvas.SetDiagram( self.diagram )
         self.diagram.SetCanvas( self.canvas )
         self.window_1_pane_2.SetScrollRate(10, 10)
-        self.window_1.SetMinSize(wx.DLG_SZE(self.window_1, (408, 200)))
+        self.window_1.SetMinSize(wx.DLG_UNIT(self.window_1, wx.Size(408, 200)))
         # end wxGlade
 
     def __do_layout(self):
@@ -451,8 +451,9 @@ class Home(wx.Frame):
             md = wx.MessageDialog(None, 'This Elements are disconnected: ' + sd,'WARNING!!', wx.ICON_EXCLAMATION)
             md.ShowModal()
         else:
-            # if not(self.saved):
-            self.OnMenuFileSave('')
+            if not(self.saved):
+                self.OnMenuFileSave('')
+
             filename = self.thisFile
             
             import sys
@@ -491,7 +492,6 @@ class Home(wx.Frame):
             archi.close()
 
             os.system("python2.7 "+self.pathCode+"exec.py &")
-
 
     def OnMenuSimulationPost(self, event): # wxGlade: Home.<event_handler>
         folder_name = self.pathTests + "tests/" + self.Simulator[0]['folder_name']
@@ -858,20 +858,12 @@ class Home(wx.Frame):
         line = archi.readline()
         if line=="#### ---- ####\n":
             import sys
-            i1 = filename.rfind("/")
-            pathName = ''
-            for j in range(i1):
-                pathName = pathName + filename[j]
-            i2 = filename.rfind(".")
-            moduleName = ''
-            for j in range(i2-i1-1):
-                moduleName = moduleName + filename[j+i1+1]
-            
-            pathName = pathName.encode('utf-8')
+            pathName = os.path.dirname(filename)
             sys.path.append(pathName)
-            moduleName = moduleName.encode("utf-8")
-
-            externalData = __import__(str(moduleName))
+            moduleName = os.path.basename(filename)
+            moduleName = os.path.splitext(moduleName)[0]
+            #print "DEBUG: ", moduleName, pathName
+            externalData = __import__(moduleName)
 
             self.Simulator.append(externalData.Simulator)
             self.Cylinders = externalData.Cylinders
@@ -1669,7 +1661,7 @@ class Home(wx.Frame):
                 p0 = peer[0]
                 p1 = peer[1] - 1
                 peer = (p0,p1)	
-                self.tree.SetItemPyData(self.itemsTree[element][c],peer)
+                self.tree.SetItemData(self.itemsTree[element][c],peer)
                 i = int(c) - 1
                 self.itemsTree[element][i] = self.itemsTree[element][c]
         self.tree.Delete(toDelete)        
@@ -1868,15 +1860,15 @@ class Home(wx.Frame):
         for name in self.names:
             self.itemsTree[name] = dict()
             self.childs[name] = self.tree.AppendItem(self.root, name)
-            self.tree.SetPyData(self.childs[name], None)
+            self.tree.SetItemData(self.childs[name], None)
             self.tree.SetItemImage(self.childs[name], self.fldridx, wx.TreeItemIcon_Normal)
             self.tree.SetItemImage(self.childs[name], self.fldropenidx, wx.TreeItemIcon_Expanded)
 
     def addItemTree(self,element,index,label="ssaas"):
         last = self.tree.AppendItem(self.childs[element],label)
-        self.tree.SetPyData(last, None)
+        self.tree.SetItemData(last, None)
         peer = (element,index)
-        self.tree.SetItemPyData(last,peer)
+        self.tree.SetItemData(last,peer)
         self.itemsTree[element][index] = last
         self.tree.SetItemImage(last, self.tipdx, wx.TreeItemIcon_Normal)
 

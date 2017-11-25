@@ -6,7 +6,7 @@ import os
 from simCythonCPP import Simulator
 
 sys.path.append("/Users/manu/Documents/Ingeniería/Proyecto investigación/icesym/ICESym-GUI/saves")
-data = __import__("QUB400_NH")
+data = __import__("QUB400_NH_many_ht2")
 now = time.time()
 Sim = Simulator(**data.kargs)
 print "termina de inicializar"

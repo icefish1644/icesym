@@ -445,7 +445,7 @@ class PostProcess(wx.Frame):
 
 		gc = libPlot.PlotGraphics(lines,title,dataFigure[-1]['x_axis'],dataFigure[-1]['y_axis'])
 		plot_canvas.Draw(gc)
-		plot_canvas.SetEnableLegend(True)
+		#plot_canvas.SetEnableLegend(True)
 		#plot_canvas.SaveFile(fileName='Cyl1vsCyl2.jpg') 
 		s = self.GetSize()
 		s = (s[0]+1,s[1]+1)

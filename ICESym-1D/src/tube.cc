@@ -2,17 +2,17 @@
 /*
  * sim-c
  * Copyright (C) Juan Marcelo Gimenez 2009 <jmarcelogimenez@gmail.com>
- * 
+ *
  * sim-c is free software: you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
  * Free Software Foundation, either version 3 of the License, or
  * (at your option) any later version.
- * 
+ *
  * sim-c is distributed in the hope that it will be useful, but
  * WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
  * See the GNU General Public License for more details.
- * 
+ *
  * You should have received a copy of the GNU General Public License along
  * with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
@@ -21,13 +21,15 @@
 
 /**
    	\brief Tube's Constructor
-   	\param all: each Tube attribute 
+   	\param all: each Tube attribute
 */
-Tube::Tube(unsigned int nnod, unsigned int ndof, unsigned int nnod_input, 
-		   int implicit, vector<double> state_ini, vector<int> histo, 
-		   char* label, double longitud, vector<double> xnod, 
-		   vector<double> Area, vector<double> twall, vector<double> curvature, 
-		   vector<double> dAreax, char* tleft, unsigned int nleft, 
+Tube::Tube(unsigned int nnod, unsigned int ndof, unsigned int nnod_input,
+		   int implicit, vector<double> state_ini, vector<int> histo,
+		   char* label, double longitud, vector<double> xnod,
+		   vector<double> Area, vector<double> twall, vector<double> curvature,
+		   vector<double> dAreax,
+			 double Text, double esp, double K, vector<double> Ts,
+			 char* tleft, unsigned int nleft,
 		   char* tright, unsigned int nright, int type):
 Component(nnod,ndof,nnod_input,implicit,state_ini,histo,label){
 	this->longitud  = longitud;
@@ -35,6 +37,10 @@ Component(nnod,ndof,nnod_input,implicit,state_ini,histo,label){
 	this->Area		= Area;
 	this->twall		= twall;
 	this->curvature = curvature;
+	this->Text = Text;
+	this->esp = esp;
+	this->K = K;
+	this->Ts = Ts;
 	strcopy(this->tleft,tleft);
 	strcopy(this->tright,tright);
 	this->nleft		= nleft;
@@ -53,7 +59,7 @@ Component(nnod,ndof,nnod_input,implicit,state_ini,histo,label){
 		}
 		this->dAreax[nnod-1] = (Area[nnod-1]-Area[nnod-2])/(xnod[nnod-1]-xnod[nnod-2]);
 	}
-		
+
 }
 
 /**
@@ -67,6 +73,10 @@ Tube::Tube(Tube* t):Component(t->nnod,t->ndof,t->nnod_input,t->implicit,t->state
 	this->twall		= t->twall;
 	this->dAreax	= t->dAreax;
 	this->curvature = t->curvature;
+	this->Text = t->Text;
+	this->esp = t->esp;
+	this->K = t->K;
+	this->Ts = t->Ts;
 	strcopy(this->tleft,t->tleft);
 	this->nleft		= t->nleft;
 	strcopy(this->tright,t->tright);
@@ -107,9 +117,10 @@ void Tube::undoStruct(dataTube &data){
 void Tube::calculate(dataSim &globalData){
 	dataTube myData;
 	makeStruct(myData);
-	solve_tube(&myData, &globalData, &(this->state[0]), &(this->new_state[0]), &(this->xnod[0]), 
-			   &(this->hele[0]), &(this->Area[0]), &(this->twall[0]), &(this->curvature[0]), 
-			   &(this->dAreax[0]), &(this->itube));
+	solve_tube(&myData, &globalData, &(this->state[0]), &(this->new_state[0]), &(this->xnod[0]),
+			   &(this->hele[0]), &(this->Area[0]), &(this->twall[0]), &(this->curvature[0]),
+			   &(this->dAreax[0]), &(this->itube),
+			 	 &(this->Text), &(this->esp), &(this->K), &(this->Ts[0]));
 	undoStruct(myData);
 }
 
@@ -120,7 +131,7 @@ void Tube::calculate(dataSim &globalData){
 void Tube::calculate_state(double* atm, dataSim &globalData){
 	dataTube myData;
 	makeStruct(myData);
-	state_initial_tube(&myData, &atm[0], &globalData, &(this->state_ini[0]),&(this->xnod[0]), 
+	state_initial_tube(&myData, &atm[0], &globalData, &(this->state_ini[0]),&(this->xnod[0]),
 					   &(this->Area[0]), &(this->twall[0]), &(this->curvature[0]), &(this->dAreax[0]));
 	undoStruct(myData);
 }

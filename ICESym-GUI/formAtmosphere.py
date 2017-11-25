@@ -43,7 +43,7 @@ class formAtmosphere(wx.Dialog):
     def __set_properties(self):
         # begin wxGlade: formAtmosphere.__set_properties
         self.SetTitle("Configure Atmosphere")
-        self.SetSize(wx.DLG_SZE(self, (140, 70)))
+        self.SetSize(wx.DLG_UNIT(self, wx.Size(140, 70)))
         self.label_0.SetFont(wx.Font(8, wx.DEFAULT, wx.NORMAL, wx.NORMAL, 0, "Sans"))
         self.data['rho'].SetFont(wx.Font(8, wx.DEFAULT, wx.NORMAL, wx.NORMAL, 0, "Sans"))
         self.data['rho'].SetValidator(numberValidator())

@@ -3,7 +3,7 @@ module def_tube
   use def_simulator
   use utilities, only : pi
   use, intrinsic :: ISO_C_BINDING
-  
+
   type, BIND(C) :: this
      integer(C_INT) :: nnod, ndof,nnod_input
      real(C_DOUBLE) :: longitud, dt_max
@@ -12,7 +12,7 @@ module def_tube
 
 contains
   subroutine state_initial_tube(myData, atm, globalData, state_ini, xnod, Area, Twall, curvature, dAreax) BIND(C)
-    
+
     use, intrinsic :: ISO_C_BINDING
     type(this)::myData
     type(dataSim)::globalData
@@ -27,9 +27,9 @@ contains
     enddo
 
    end subroutine state_initial_tube
-	
+
   subroutine solve_tube(myData, globalData, state, new_state, xnod, hnod, &
-       Area, Twall, curvature, dAreax, itube) BIND(C)
+       Area, Twall, curvature, dAreax, itube, Text, esp, K, Ts) BIND(C)
 
     use def_valve
     use gasdyn_utils
@@ -40,7 +40,9 @@ contains
     real(C_DOUBLE) :: state(0:((myData%nnod+myData%nnod_input)*myData%ndof)-1)
     real(C_DOUBLE) :: new_state(0:(myData%nnod*myData%ndof)-1)
     real(C_DOUBLE), dimension(myData%nnod-1) :: hnod
-    real(C_DOUBLE), dimension(myData%nnod) :: xnod, Area, Twall, curvature, dAreax
+    real(C_DOUBLE), dimension(myData%nnod) :: xnod, Area, Twall, curvature, dAreax, Ts
+    real(C_DOUBLE) :: esp, K, Text
+
     integer :: i,j,fixed
     real*8 :: ga,dt,dx
     real*8, dimension(5) :: prop_g
@@ -51,7 +53,7 @@ contains
     real*8, dimension(3,2) :: Upv2
 
     integer :: scheme, solved_case
-    
+
     scheme = 1
 
     if(myData%type.eq.1) then
@@ -94,7 +96,7 @@ contains
     end if
 
     call fluxa(U, Area, ga, myData%nnod, scheme, Fa)
-    call source(U, dAreax, Area, prop_g, Twall, myData%nnod, H, scheme)
+    call source(U, dAreax, Area, prop_g, Twall, myData%nnod, H, scheme, Text, esp, K, Ts)
     call fluxTVD(U, Fa, H, dt, tau, ga, myData%nnod, F_TVD)
 
     forall(i = 2:myData%nnod-1, j = 1:3)
@@ -103,7 +105,7 @@ contains
 
     U(:,1)           = U(:,2)
     U(:,myData%nnod) = U(:,myData%nnod-1)
-    
+
     if(scheme.eq.0) then
        forall(i = 1:myData%nnod, j = 1:3)
           U(j,i) = U(j,i)/Area(i)
@@ -146,7 +148,7 @@ contains
        call rhschar(Upv, Area(myData%nnod), dAreax(myData%nnod), &
             Twall(myData%nnod), ga, globalData%R_gas, globalData%dt, &
             globalData%viscous_flow, globalData%heat_flow, RHS)
-       
+
        ! call solve_valve_implicit(Urv, Upv2, 1, 0.9*Area(myData%nnod), &
        !      Area(myData%nnod), RHS, ga, Upipe, Uthroat, solved_case)
        ! Uref(:,2) = Upipe
@@ -155,7 +157,7 @@ contains
          U_old(:,myData%nnod-1), ga, 1, dt, dx, fixed)
     ! call bc_tubes(U(:,myData%nnod), Uref(:,2), &
     !      U(:,myData%nnod-1), ga, 1, dt, dx, fixed)
-    
+
     ! From conservative basis to primitive basis
     call cv2pv(U, Up, ga, myData%nnod)
 
@@ -170,9 +172,9 @@ contains
 
     call actualize_valves(itube, Area, Twall, dAreax, myData%nnod, &
          U_old, hnod, ga, dt)
-    
+
   end subroutine solve_tube
-  
+
   subroutine cv2pv(Uc, Up, ga, nnod)
     !
     !  Conversion from primitive variables to conservative variables
@@ -181,30 +183,30 @@ contains
     !  cv2pv calls the following subroutines and functions: none
     !
     implicit none
-    
+
     integer, intent(in) :: nnod
     real*8, intent(in) :: ga
     real*8, dimension(3,nnod), intent(in) :: Uc
     real*8, dimension(3,nnod), intent(out) :: Up
 
     real*8 :: g1
-    
+
     g1 = ga-1.
     Up(1,:) = Uc(1,:)
     Up(2,:) = Uc(2,:)/Uc(1,:)
     Up(3,:) = (Uc(3,:)-0.5*Up(1,:)*Up(2,:)**2)*g1
-    
+
   end subroutine cv2pv
-  
+
   subroutine pv2cv(Up, Uc, ga, nnod)
     !
     !  Conversion from conservativa variables to primitive variables
     !
     !  pv2cv is called by: solve_tubes, bc_tubes
     !  pv2cv calls the following subroutines and functions: none
-    !  
+    !
     implicit none
-    
+
     integer, intent(in) :: nnod
     real*8, intent(in) :: ga
     real*8, dimension(3,nnod), intent(in) :: Up
@@ -238,7 +240,7 @@ contains
     real*8, dimension(nnod) :: pres
 
     g1 = ga-1.
-    
+
     if(scheme.eq.0)then
        pres = (U(3,:)-0.5*U(2,:)**2/U(1,:))*g1/area
        F(1,:) = U(2,:)
@@ -253,9 +255,9 @@ contains
 
   end subroutine fluxa
 
-  subroutine source(U, dareax, area, prop_g, Twall, nnod, h, scheme)
+  subroutine source(U, dareax, area, prop_g, Twall, nnod, h, scheme, Text, esp, K, Ts)
     !
-    !   Computes the source term for 
+    !   Computes the source term for
     !      variable section,
     !      friction flow, and
     !      heat transfer
@@ -266,17 +268,23 @@ contains
     implicit none
 
     integer, intent(in) :: nnod,scheme
+    real*8, intent(in) :: Text,esp,K
+    real*8, dimension(nnod),intent(inout) :: Ts
     real*8, dimension(3,nnod), intent(in) :: U
     real*8, dimension(nnod), intent(in) :: dareax,area,Twall
     real*8, dimension(5), intent(in) :: prop_g
     real*8, dimension(3,nnod), intent(out) :: h
 
-    integer :: viscous_flow,heat_flow
+    logical :: exist
+    integer :: viscous_flow,heat_flow,i
+    real*8, dimension(nnod) :: B_aire,K_aire,nu_aire,Tf,delta_T
     real*8 :: co_mu(2),ga,g1,R_gas,cp,Pr
-    real*8 :: th_equiv,cf_codo,alfa_ext,h_cond
+    real*8 :: th_equiv,cf_codo,alfa_ext,h_cond,Ts_prom
+    real*8, dimension(nnod) :: a1,a_ext,a_int, U_eq, dQ_dt
     real*8, dimension(nnod) :: pres,temp,rho,rho_vel
     real*8, dimension(nnod) :: dia,mu,Re,ff,cf_rect,cf
-    real*8, dimension(nnod) :: ggg,alfa,qptot,alfa_int,K,kappa
+    real*8, dimension(nnod) :: ggg,alfa,qptot,alfa_int,kappa
+    real*8, dimension(nnod) :: R_int,R_ext,h_int,h_ext,Ra
 
     viscous_flow = prop_g(3)
     heat_flow    = prop_g(4)
@@ -317,38 +325,180 @@ contains
        ff      = 0.2373 / Re**0.25
        cf_rect = 4.*ff /dia
        cf      = cf_codo+cf_rect
-       
+
        ! friction source
        h(2,:) = h(2,:) - cf/2.0*U(2,:)*dabs(U(2,:)/U(1,:))
     endif
 
     if(heat_flow.eq.1) then
-       if(.false.) then
-          ! Ecuaciones originales
-          ggg      = dabs(rho_vel)*3600.0 ! en kg/m^2/hora
-          alfa     = 4.0d-3*ggg**0.8 / dia**0.2
-          th_equiv = 4187.0  ! 4187 joules = 1 kcal
-          
-          if(.true.)then
-             alfa_int = alfa
-             alfa_ext = 1.0
-             h_cond   = 1.0
-             K        = 1.0/(1.0/alfa_int + 1.0/h_cond + 1.0/alfa_ext)
-             qptot    = 4*K*(Twall-Temp)/dia*area*Th_equiv
-          else
-             qptot    = 4*alfa*(Twall-Temp)/dia*area*th_equiv
-          endif
-          
-          !  heat transfer source       
-          h(3,:) = h(3,:)+qptot / 3600.0
-       else
-          ! Pruebo la correlacion que puse en la tesis
-          Pr    = 0.71
-          kappa = mu*cp/Pr
-          qptot = pi*0.0297*kappa*Re**0.75*Pr**(1./3.)*(Twall-Temp)
-          !  heat transfer source
-          h(3,:) = h(3,:)+qptot
-       endif
+      ! Pruebo la correlacion que puse en la tesis
+      Pr    = 0.71
+      kappa = mu*cp/Pr
+      qptot = 0.0395*kappa*Re**0.75*Pr**(1./3.)*(Twall-Temp)/dia**2
+
+      !DEBUG
+      if (K.eq.46) then
+         inquire(file="HT_tube0_ht1.csv", exist=exist)
+         if (exist) then
+            open(7, file="HT_tube0_ht1.csv", status="old", position="append", action="write")
+         else
+            open(7, file="HT_tube0_ht1.csv", status="new", action="write")
+         endif
+         write(7,*) qptot(1),";", qptot(floor(nnod*0.5)), ";", qptot(nnod), ";"
+         close(7)
+      else if(K.eq.47) then
+         inquire(file="HT_tube3_ht1.csv", exist=exist)
+         if (exist) then
+            open(8, file="HT_tube3_ht1.csv", status="old", position="append", action="write")
+         else
+            open(8, file="HT_tube3_ht1.csv", status="new", action="write")
+         end if
+         write(8,*) qptot(1),";", qptot(floor(nnod*0.5)), ";", qptot(nnod), ";"
+         close(8)
+      endif
+
+      !DEBUG
+      if (K.eq.46) then
+         inquire(file="P_tube0_ht1.csv", exist=exist)
+         if (exist) then
+            open(3, file="P_tube0_ht1.csv", status="old", position="append", action="write")
+         else
+            open(3, file="P_tube0_ht1.csv", status="new", action="write")
+         endif
+         write(3,*) pres(nnod), ";"
+         close(3)
+      else if(K.eq.47) then
+         inquire(file="P_tube3_ht1.csv", exist=exist)
+         if (exist) then
+            open(4, file="P_tube3_ht1.csv", status="old", position="append", action="write")
+         else
+            open(4, file="P_tube3_ht1.csv", status="new", action="write")
+         endif
+         write(4,*) pres(1), ";"
+         close(4)
+      endif
+
+      !DEBUG
+      if (K.eq.46) then
+         inquire(file="Temp_tube0_ht1.csv", exist=exist)
+         if (exist) then
+            open(1, file="Temp_tube0_ht1.csv", status="old", position="append", action="write")
+         else
+            open(1, file="Temp_tube0_ht1.csv", status="new", action="write")
+         endif
+         write(1,*) Temp(1), ";", Temp(floor(nnod*0.5)), ";", Temp(nnod), ";", Twall(1)
+         close(1)
+      else if(K.eq.47) then
+         inquire(file="Temp_tube3_ht1.csv", exist=exist)
+         if (exist) then
+            open(2, file="Temp_tube3_ht1.csv", status="old", position="append", action="write")
+         else
+            open(2, file="Temp_tube3_ht1.csv", status="new", action="write")
+         endif
+         write(2,*) Temp(1), ";", Temp(floor(nnod*0.5)), ";", Temp(nnod), ";", Twall(1)
+         close(2)
+      endif
+
+      !  heat transfer source
+      h(3,:) = h(3,:)+qptot
+
+    else if(heat_flow.eq.2) then
+      Pr = 0.71
+      R_int = dia*0.5
+      R_ext = (dia+esp*2)*0.5
+      kappa = mu*cp/Pr
+      Tf = (Text+Ts)/2 !Temperatura media de capa
+      K_aire = 0.02624*(Tf/300)**0.8646 !coeficiente de conducitivad termica
+      nu_aire = 1.458*Tf**2.5/((38970+Tf*353)*10**6) !viscosidad cinematica
+      B_aire = 1/Tf !coeficiente de compresibilidad volumetrico
+      Ra = 9.8*B_aire*Pr*dabs(Ts-Text)*(2*R_ext)**3/(nu_aire**2) !numero de Rayleigh
+      h_ext = K_aire*(0.6+0.32128*Ra**(1./6.))/(2*R_ext) !uso Pr=0.71 en 0.32128
+      h_int = 0.0395*kappa*Re**0.75*Pr**(1./3.)/(2*R_int)
+
+      where(h_ext < 1d-6)
+         h_ext=1d-6
+      end where
+
+      where (h_int < 1d-6)
+         h_int=1d-6
+      end where
+
+      U_eq = dlog(R_ext/R_int)*R_int/K+R_int/(R_ext*h_ext)+1/h_int
+      dQ_dt = (Text-Temp)/U_eq
+      qptot = 4*dQ_dt/dia
+
+      !Actualizo el valor de Ts
+      a_ext = R_ext*h_ext
+      a_int = R_int*h_int
+      a1 = dlog(R_ext/R_int)
+      Ts = (a1*Text+K*Temp/a_ext+K*Text/a_int)/(a1+K*(1/a_ext+1/a_int))
+
+      !DEBUG
+      if (K.eq.46) then
+         inquire(file="Temp_tube0_ht2.csv", exist=exist)
+         if (exist) then
+            open(1, file="Temp_tube0_ht2.csv", status="old", position="append", action="write")
+         else
+            open(1, file="Temp_tube0_ht2.csv", status="new", action="write")
+         endif
+         write(1,*) Temp(1), ";", Temp(floor(nnod*0.5)), ";", Temp(nnod), ";", Twall(1)
+         close(1)
+      else if(K.eq.47) then
+         inquire(file="Temp_tube3_ht2.csv", exist=exist)
+         if (exist) then
+            open(2, file="Temp_tube3_ht2.csv", status="old", position="append", action="write")
+         else
+            open(2, file="Temp_tube3_ht2.csv", status="new", action="write")
+         endif
+         write(2,*) Temp(1), ";", Temp(floor(nnod*0.5)), ";", Temp(nnod), ";", Twall(1)
+         close(2)
+      endif
+
+      !DEBUG
+      if (K.eq.46) then
+         inquire(file="P_tube0_ht2.csv", exist=exist)
+         if (exist) then
+            open(3, file="P_tube0_ht2.csv", status="old", position="append", action="write")
+         else
+            open(3, file="P_tube0_ht2.csv", status="new", action="write")
+         endif
+         write(3,*) pres(nnod), ";"
+         close(3)
+      else if(K.eq.47) then
+         inquire(file="P_tube3_ht2.csv", exist=exist)
+         if (exist) then
+            open(4, file="P_tube3_ht2.csv", status="old", position="append", action="write")
+         else
+            open(4, file="P_tube3_ht2.csv", status="new", action="write")
+         endif
+         write(4,*) pres(1), ";"
+         close(4)
+      endif
+
+      !  heat transfer source
+      h(3,:) = h(3,:)+qptot
+
+      !DEBUG
+      if (K.eq.46) then
+         inquire(file="HT_tube0_ht2.csv", exist=exist)
+         if (exist) then
+            open(7, file="HT_tube0_ht2.csv", status="old", position="append", action="write")
+         else
+            open(7, file="HT_tube0_ht2.csv", status="new", action="write")
+         endif
+         write(7,*) qptot(1),";", qptot(floor(nnod*0.5)), ";", qptot(nnod), ";"
+         close(7)
+      else if(K.eq.47) then
+         inquire(file="HT_tube3_ht2.csv", exist=exist)
+         if (exist) then
+            open(8, file="HT_tube3_ht2.csv", status="old", position="append", action="write")
+         else
+            open(8, file="HT_tube3_ht2.csv", status="new", action="write")
+         end if
+         write(8,*) qptot(1),";", qptot(floor(nnod*0.5)), ";", qptot(nnod), ";"
+         close(8)
+      endif
+
     endif
 
   end subroutine source
@@ -434,7 +584,7 @@ contains
           vaux(k,i) = min(vaux(k,i),(sigma_half(k,i)*dabs(alfa_half(k,i))))
           vaux(k,i) = max(vaux(k,i),0.0d0)
           g_2tilde(k,i) = s_alfa_half(k,i)*vaux(k,i)
-          
+
           theta(k,i) = (dabs(alfa_half(k,i)-alfa_half(k,i-1)) /   &
                (dabs(alfa_half(k,i))+dabs(alfa_half(k,i-1))))
        end forall
@@ -502,9 +652,9 @@ contains
     !
     !  Returns the diagonal system for the flux equations
     !
-    !    p = [p11 p21 ... pn1 
-    !         p12 p22 ... pn2  
-    !		   ... 
+    !    p = [p11 p21 ... pn1
+    !         p12 p22 ... pn2
+    !		   ...
     !         p1n p2n ... pnn]
     !
     !  diagsys is called by: fluxTVD, bc_abso, bc_abso_unsteady
@@ -572,7 +722,7 @@ contains
 
     integer itype
     real*8 :: epsil
-    
+
     itype = 1
     epsil = 0.1d0
 
@@ -656,7 +806,7 @@ contains
     else
 
        call pv2cv(Uref, Uref_C, ga, 1)
-    
+
        if(unsteady_absorbent) then
           call bc_abso_unsteady(U, normal, Uin, Uref_C, ga, Ubc, dt, dx)
        else
@@ -665,7 +815,7 @@ contains
 
        alfa = 0.
        U = alfa*U+(1.-alfa)*Ubc
-       
+
     end if
 
   end subroutine bc_tubes

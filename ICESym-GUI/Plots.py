@@ -24,8 +24,8 @@ class Plots(wx.Dialog):
     def __set_properties(self):
         # begin wxGlade: Plots.__set_properties
         self.SetTitle("view Plots")
-        self.SetSize(wx.DLG_SZE(self, (242, 207)))
-        self.panel_8.SetMinSize(wx.DLG_SZE(self.panel_8, (240, 207)))
+        self.SetSize(wx.DLG_UNIT(self, wx.Size(242, 207)))
+        self.panel_8.SetMinSize(wx.DLG_UNIT(self.panel_8, wx.Size(240, 207)))
         # end wxGlade
 
     def __do_layout(self):

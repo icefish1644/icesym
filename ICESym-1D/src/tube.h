@@ -2,17 +2,17 @@
 /*
  * sim-c
  * Copyright (C) Juan Marcelo Gimenez 2009 <jmarcelogimenez@gmail.com>
- * 
+ *
  * sim-c is free software: you can redistribute it and/or modify it
  * under the terms of the GNU General Public License as published by the
  * Free Software Foundation, either version 3 of the License, or
  * (at your option) any later version.
- * 
+ *
  * sim-c is distributed in the hope that it will be useful, but
  * WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.
  * See the GNU General Public License for more details.
- * 
+ *
  * You should have received a copy of the GNU General Public License along
  * with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
@@ -26,19 +26,20 @@ using namespace std;
 /**
    Clase que modela los Tubos
 */
-class Tube: public Component 
+class Tube: public Component
 {
  public:
-	Tube(unsigned int, unsigned int, unsigned int, int, vector<double>, 
-		 vector<int>, char*, double, vector<double>, vector<double>, 
-		 vector<double>, vector<double>, vector<double>, char*, unsigned int, 
-		 char*, unsigned int, int);
+	Tube(unsigned int, unsigned int, unsigned int, int, vector<double>,
+		vector<int>, char*, double, vector<double>, vector<double>,
+		vector<double>, vector<double>, vector<double>,
+        double, double, double, vector<double>,
+        char*, unsigned int, char*, unsigned int, int);
 	Tube(Tube* t);
 	Tube(){};
 	void makeStruct(dataTube &data);
 	void undoStruct(dataTube &data);
 	void calculate_state(double* atm, dataSim &globalData);
-	
+
 	char* tleft;					/**< Component type connected at left */
 	unsigned int nleft;				/**< Component number connected at left in global array*/
 	char* tright;					/**< Component type connected at right */
@@ -48,10 +49,14 @@ class Tube: public Component
 	vector<double> Area;			/**< Transversal area for each node */
 	vector<double> twall;			/**< Temperature tube wall for each node */
 	vector<double> dAreax;			/**< Differential area in each node */
-	int itube;						/**< index in global array */
+    double Text;    /**< Temperature of air far from tube */
+    double esp;     /**< Tube's wall thickness */
+    double K;       /**< Tube's wall thermal conductivity coeficient */
+    vector<double> Ts; /**< Temperature of external tube wall */
+    int itube;						/**< index in global array */
 	vector<double> xnod;			/**< Coordinates for each node */
-	int type;                       /**< Indicates wether the tube belongs 
-									   to  intake or exhaust systems 
+	int type;                       /**< Indicates wether the tube belongs
+									   to  intake or exhaust systems
 									   (1: intake, -1: exhaust)*/
  protected:
 
@@ -59,7 +64,7 @@ class Tube: public Component
 	double longitud;				/**< Tube lenght */
 	vector<double> curvature;	    /**< Curvature for each node */
 	void calculate(dataSim &globalData);
-	
+
 };
 
 #endif // _TUBE_H_
