@@ -1108,7 +1108,7 @@ contains
     a     = myData%crank_radius ! cranck radius
 	Ach = myData%head_chamber_area ! cylinder head surface area
     Ap  = myData%piston_area       ! piston crown surface Area
-	Area_n = pi*Bo*2*a/(myData%ntemp-2) ! section piston wall area
+	Area_n = (pi*Bo*2*a-Ap-Ach)/(myData%ntemp-2) ! section piston wall area
 	m = floor((Area-Ap-Ach)/Area_n) ! number of sections
 	A_restante = Area-Ach-Ap-m*Area_n ! remaining piston wall area
 
