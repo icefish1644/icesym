@@ -5,7 +5,7 @@ Modified to run in macos Sierra and Windows 10 (Cygwin). \
 Added convergence check. 
 
 # Dependencies:
-python 2.7 \
+python 2.7 (with development headers) \
 numpy \
 cython \
 gfortran \
