@@ -15,7 +15,7 @@ extern "C" {
 		      double* new_state, double* mass_C, double* twall);
   void solve_tube(dataTube* myData, dataSim* globalData, double* state, double* new_state,
 		  double* xnod, double* hele, double* Area, double* twall, double* curvature,
-		  double* dAreax, int* itube, double* Text, double* esp, double* K, double* Ts);
+		  double* dAreax, int* itube, double* Ts);
   void solve_tank(dataTank* myData, dataSim* globalData, double* state, double* new_state,
 		  int* type_end, double* Area_tube, double* twall_tube, double* dAreax_tube,
 		  double* Cd_ports);

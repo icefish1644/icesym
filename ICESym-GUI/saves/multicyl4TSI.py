@@ -15,10 +15,10 @@ Simulator0['calc_engine_data'] = 1
 Simulator0['Courant'] = 0.8
 Simulator0['heat_flow'] = 1.0
 Simulator0['R_gas'] = 287.0
-Simulator0['rpms'] = [1000, 2000, 3000, 4000, 5000, 6000]
+Simulator0['rpms'] = [6000]
 Simulator0['filesave_spd'] = ''
 Simulator0['filesave_state'] = 'multicyl4TSI'
-Simulator0['ncycles'] = 5
+Simulator0['ncycles'] = 10
 Simulator0['folder_name'] = 'multicyl4TSI'
 Simulator0['ga'] = 1.3
 Simulator0['viscous_flow'] = 1.0
@@ -28,6 +28,7 @@ Simulator0['get_state'] = 2
 Simulator0['nappend'] = 5.0
 Simulator0['engine_type'] = 0
 Simulator0['nstroke'] = 4
+Simulator0['tolerance'] = 0.001
 
 Simulator = Simulator0
 
@@ -65,6 +66,7 @@ Cylinders0['histo'] = [0]
 Cylinders0['Vol_clearance'] = 5.58505360638e-05
 Cylinders0['Bore'] = 0.08
 Cylinders0['scavenge'] = 0.0
+Cylinders0['converge_mode'] = 5
 
 
 #--------- Inicializacion de fuel
@@ -137,6 +139,7 @@ Cylinders1['histo'] = [0]
 Cylinders1['Vol_clearance'] = 5.58505360638e-05
 Cylinders1['Bore'] = 0.08
 Cylinders1['scavenge'] = 0.0
+Cylinders1['converge_mode'] = 5
 
 
 #--------- Inicializacion de fuel
@@ -209,6 +212,7 @@ Cylinders2['histo'] = [0]
 Cylinders2['Vol_clearance'] = 5.58505360638e-05
 Cylinders2['Bore'] = 0.08
 Cylinders2['scavenge'] = 0.0
+Cylinders2['converge_mode'] = 5
 
 
 #--------- Inicializacion de fuel
@@ -281,6 +285,7 @@ Cylinders3['histo'] = [0]
 Cylinders3['Vol_clearance'] = 5.58505360638e-05
 Cylinders3['Bore'] = 0.08
 Cylinders3['scavenge'] = 0.0
+Cylinders3['converge_mode'] = 5
 
 
 #--------- Inicializacion de fuel

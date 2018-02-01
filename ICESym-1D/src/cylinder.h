@@ -118,7 +118,7 @@ class Cylinder: public Component
 	         double, double, vector<double>, vector<double>, vector<double>, 
 			 vector<double>,vector<double>, int, double, int, int, int, int, fuel, 
 			 combustion, injection,vector<valve>, vector<valve>, Scavenge, int,int,
-			 int, double, double, double);
+			 int, double, double, double, int, double, double);
 	Cylinder(Cylinder* c);
 	Cylinder(){};
 	void makeStruct(dataCylinder &data);
@@ -166,7 +166,12 @@ class Cylinder: public Component
 	combustion combustion_data;
 	int icyl;				  /**< Index of this cylinder in global array*/
 	int species_model;		  /**< Type of Species Model 0:none, 1:single-component */
-	
+
+	/**< Convergence check variables */
+	int converge_mode;
+	double converge_var_old;
+	double converge_var_new;
+
 	void calculate(dataSim &globalData);
 
 	/**

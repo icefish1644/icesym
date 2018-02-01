@@ -34,7 +34,8 @@ Cylinder::Cylinder(unsigned int nnod, unsigned int ndof, unsigned int nnod_input
 				   injection injection_data,vector<valve> intake_valves, 
 				   vector<valve> exhaust_valves, Scavenge scavenge_data, int extras,
 				   int species_model, int nvanes, double major_radius, double minor_radius,
-				   double chamber_heigh):
+				   double chamber_heigh, int converge_mode,
+				   double converge_var_old, double converge_var_new):
 Component(nnod,ndof,nnod_input,implicit,state_ini,histo,label){
 	this->fuel_data				= fuel_data;
 	this->combustion_data		= combustion_data;
@@ -65,6 +66,9 @@ Component(nnod,ndof,nnod_input,implicit,state_ini,histo,label){
 	this->species_model			= species_model;
 	this->nvi					= this->intake_valves.size();
 	this->nve					= this->exhaust_valves.size();
+	this->converge_mode         = converge_mode;
+	this->converge_var_old          = converge_var_old;
+	this->converge_var_new          = converge_var_new;
 
 	// MRCVC
 	this->nvanes        = nvanes;
@@ -106,6 +110,10 @@ Cylinder::Cylinder(Cylinder* c):Component(c->nnod,c->ndof,c->nnod_input,c->impli
 	this->species_model		= c->species_model;
 	this->nvi			    = c->nvi;
 	this->nve				= c->nve;
+
+	this->converge_mode     = c->converge_mode;
+	this->converge_var_old  = c->converge_var_old;
+	this->converge_var_new  = c->converge_var_new;
 
 	// MRCVC
 	this->nvanes        = c->nvanes;
@@ -204,6 +212,12 @@ void Cylinder::makeStruct(dataCylinder &data){
 	data.nunit 				= this->nunit;
 	data.species_model		= this->species_model;
 	data.ntemp 				= this->Twall.size();
+
+	data.converge_mode      = this->converge_mode;
+	data.converge_var_old   = this->converge_var_old;
+	data.converge_var_new   = this->converge_var_new;
+
+
 	if(this->Twall.size() == 1)
 		data.nh_temp =  false;
 	else
@@ -235,6 +249,11 @@ void Cylinder::undoStruct(dataCylinder &data){
 	this->delta_ca			= data.delta_ca;
 	this->Twall[0]			= data.Twall;
 	this->factor_ht			= data.factor_ht;
+
+	this->converge_mode     = data.converge_mode;
+	this->converge_var_old      = data.converge_var_old;
+	this->converge_var_new     = data.converge_var_new;
+
 	//this->model_ht		= data.model_ht;
 	//this->type_ig			= data.type_ig;
 	//this->scavenge		= data.scavenge;

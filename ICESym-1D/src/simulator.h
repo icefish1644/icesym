@@ -37,7 +37,7 @@ class Simulator
 			  int,int,int,int,int,int,int,double,int,double,double,int,int,
 			  double,double,int,int,char*,char*,char*,char*,char*,vector<int>,
 			  vector<Cylinder>,vector<Tube>,vector<Junction>,vector<Tank>,int,
-			  vector<Atmosphere>,int,int,int,double,double);
+			  vector<Atmosphere>,int,int,int,double,double,int,double);
 	void solver();
 	void solveStep();
 	Simulator(){};
@@ -80,6 +80,8 @@ class Simulator
 	double t;
 	int nrpms;
 	int irpm;
+	int has_converged;
+	double tol;
 	vector<double> rpms;
 	int iteration;
 	double time;
@@ -135,7 +137,7 @@ class Simulator
 	vector<Tank> tanks;
 	vector<Atmosphere> atmospheres;
 
-	static const double pi = 3.1415926;
+	static constexpr double pi =  3.1415926;
 };
 
 extern "C"{

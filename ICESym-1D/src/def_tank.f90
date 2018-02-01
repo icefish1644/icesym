@@ -108,7 +108,7 @@ contains
        else
           call rhschar(Uref(:,itube), Area_P, dAreax_P, Twall_P, ga, &
                R_gas, globalData%dt, globalData%viscous_flow, &
-               globalData%heat_flow, RHS)
+               globalData%heat_flow, RHS, 0.0d0, 0.0d0, 0.0d0, 0.0d0)
           Utube = Upipe(:,itube)
           call solve_valve_implicit(Utank, Uref(:,itube), type_end(itube-1), &
                Area_T, Area_P, RHS, ga, Utube, Uthroat, solved_case)

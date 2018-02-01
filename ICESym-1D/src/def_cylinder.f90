@@ -33,10 +33,10 @@ module def_cylinder
 
   type, BIND(C) :: this
      integer(C_INT) :: nnod_input,nvi,nve,nnod,ndof,model_ht, type_ig, nunit, &
-          species_model,ntemp,nvanes
+          species_model,ntemp,nvanes, converge_mode
      real(C_DOUBLE) :: Bore,crank_radius,Vol_clearance,rod_length,head_chamber_area, &
           piston_area,theta_0,delta_ca,Twall,factor_ht, &
-          major_radius,minor_radius,chamber_heigh
+          major_radius,minor_radius,chamber_heigh, converge_var_old, converge_var_new
      logical(C_BOOL) :: scavenge, full_implicit,nh_temp
   end type this
 
@@ -669,7 +669,7 @@ contains
 
        if(cyl(icyl)%intake_valves(ival)%valve_model.eq.1 .or. myData%full_implicit) then
           call rhschar(Uriv(:,ival), Area_P, dAreax_P, Twall_P, ga, R_gas, &
-               globalData%dt, globalData%viscous_flow, globalData%heat_flow, RHS)
+               globalData%dt, globalData%viscous_flow, globalData%heat_flow, RHS, 0.0d0, 0.0d0, 0.0d0, 0.0d0)
           RHSiv(:,ival) = RHS
        end if
 
@@ -829,7 +829,7 @@ contains
 
        if(cyl(icyl)%exhaust_valves(ival)%valve_model.eq.1 .or. myData%full_implicit) then
           call rhschar(Urev(:,ival), Area_P, dAreax_P, Twall_P, ga, R_gas, &
-               globalData%dt, globalData%viscous_flow, globalData%heat_flow, RHS)
+               globalData%dt, globalData%viscous_flow, globalData%heat_flow, RHS, 0.0d0, 0.0d0, 0.0d0, 0.0d0)
           RHSev(:,ival) = RHS
        end if
 
@@ -1102,6 +1102,7 @@ contains
     real*8 :: mu,Pr,kappa,Sp,Re,Nu
     real*8 :: factor,C_h,dQ_hth,dQ_htr,C_r_medio
 	real*8, dimension(myData%ntemp) :: C_r,t_wall
+    logical :: exist
 
     Bo    = myData%Bore         ! bore
     l     = myData%rod_length   ! connecting rod length
@@ -1111,11 +1112,6 @@ contains
 	Area_n = pi*Bo*2*a/(myData%ntemp-2) ! section piston wall area
 	m = floor((Area-Ap-Ach)/Area_n) ! number of sections
 	A_restante = Area-Ach-Ap-m*Area_n ! remaining piston wall area
-
-	!DEBUG
-	!if (myData%ntemp.gt.1) then
-	!	write(*,*) "DEBUG (heat_transfer_alternative): m=",m," A_restante=",A_restante, " Twall=[", t_wall(1), t_wall(2), t_wall(3), "]"
-	!end if
 
     rho = Ucyl(1)
     p   = Ucyl(2)
@@ -1216,9 +1212,17 @@ contains
 
 	dQ_ht =  dQ_hth + dQ_htr
 
-	!DEBUG
-	!write(*,*) "DEBUG (heat_transfer_alternative): dQ_ht=",dQ_ht," dQ_hth=",dQ_hth," dQ_htr=",dQ_htr
-	!write(*,*) "DEBUG (heat_transfer_alternative): C_r=[", C_r(1), C_r(2), C_r(3), "], C_r_medio=", C_r_medio
+	!DEBUG (Warning: assumes monocyl)
+    if (.FALSE.) then
+        inquire(file="cyl_debug.csv", exist=exist)
+        if (exist) then
+            open(11, file="cyl_debug.csv", status="old", position="append", action="write")
+        else
+            open(11, file="cyl_debug.csv", status="new", action="write")
+        endif
+        write(11,"(F20.3,A1,F10.5,A1,F10.5)") dQ_ht, ";", C_r_medio, ";", globaldata%time
+        close(11)
+    end if
 
     if(globalData%save_extras) then
        write(myData%nunit,902) C_h, C_r_medio, dQ_hth, dQ_htr
@@ -1822,22 +1826,23 @@ contains
     real*8, dimension(cyl(icyl)%nve), intent(in) :: Fev
     real*8, dimension(3,cyl(icyl)%nvi), intent(in) :: Uiv,Upiv
     real*8, dimension(3,cyl(icyl)%nve), intent(in) :: Uev,Upev
-    type(this), intent(in) :: myData
-    type(dataSim), intent(in) :: globalData
+    type(this), intent(inout) :: myData
+    type(dataSim), intent(inout) :: globalData
     real*8, dimension(3), intent(inout) :: Ucyl
     real*8, dimension(3), intent(out) :: mass_cyl
 	real*8,dimension(mydata%ntemp):: t_wall
 
-    integer :: ispecie,type_ig, nunit, engine_type
+    integer :: ispecie,type_ig, nunit, engine_type, converge_mode
     real*8 :: dt,rpm,theta_g,theta,theta_cycle
     real*8 :: cp,cv,Vol,Area,Vdot,mass_old,mass_new
     real*8 :: omega,rho_cyl,p_cyl,T_cyl
     real*8 :: dQ_ht,dQ_chem,dQ_ht_fuel,phi
-    real*8 :: edot,ene_old,ene_new
-    real*8 :: SE, Torque
+    real*8 :: edot,ene_old,ene_new,Bo,a
+    real*8 :: SE, Torque, converge_var_new, converge_var_old
+    real :: err
     real*8, dimension(cyl(icyl)%nvi) :: mass_in, h_in
     real*8, dimension(cyl(icyl)%nve) :: mass_out, h_out
-    logical :: save_extras
+    logical :: save_extras,exist
 
     real*8, dimension(3) :: Ucyl_old
 
@@ -1849,6 +1854,11 @@ contains
     engine_type = globalData%engine_type
     nunit       = myData%nunit
     type_ig     = myData%type_ig
+    Bo  = myData%Bore              ! Bore
+    a   = myData%crank_radius
+
+    converge_var_new = myData%converge_var_new
+    converge_mode = myData%converge_mode
 
     theta = modulo(theta_g+myData%theta_0, theta_cycle)
 
@@ -1867,6 +1877,57 @@ contains
 
     ! Engine geometrical data
     call geometry(myData, globalData, Vol, Area, Vdot)
+
+    !Chequeo convergencia
+    !Criterio: presion maxima por ciclo
+    if (converge_mode.eq.1) then
+        if (p_cyl.ge.converge_var_new) then
+            converge_var_new = p_cyl
+        end if
+    !Criterio: presion media por ciclo
+    elseif (converge_mode.eq.2) then
+        converge_var_new=converge_var_new+p_cyl*dt
+    !Criterio: masa entrada por ciclo
+    elseif (converge_mode.eq.3) then
+        converge_var_new=converge_var_new+sum(mass_in)*dt
+    !Criterio: masa salida por ciclo
+    elseif (converge_mode.eq.4) then
+        converge_var_new=converge_var_new+sum(mass_out)*dt
+    !Criterio: presion media efectiva por ciclo
+    elseif (converge_mode.eq.5) then
+        converge_var_new=converge_var_new+p_cyl*dt*vdot
+    end if
+    myData%converge_var_new=converge_var_new
+    if (converge_mode.ne.0) then
+        if (globalData%icycle.eq.floor(omega*GlobalData%time/(theta_cycle))) then
+            err = dabs(myData%converge_var_old-converge_var_new)/dabs(converge_var_new)
+            if (globalData%icycle.ne.1) then
+                 write(*,"(A26,I3,A2,F10.9,A13,I2)") "Error relativo en el ciclo", globalData%icycle-1, ": ", &
+                         err, " - Cilindro: ", icyl
+                 if (err.le.globalData%tol) then
+                    write(*,"(A41,I2,A13,I2)") "Se alcanzó la convergencia segun criterio", converge_mode, &
+                            " - Cilindro: ", icyl
+                    globalData%has_converged = globalData%has_converged+1
+                 endif
+                 !DEBUG
+                 if (.TRUE.) then
+                    inquire(file="convergence_debug.csv", exist=exist)
+                    if (exist) then
+                        open(8, file="convergence_debug.csv", status="old", position="append", action="write")
+                    else
+                        open(8, file="convergence_debug.csv", status="new", action="write")
+                    end if
+                    write(8,"(F12.10,A1,I2,A1,I4,A1,F7.1,A1)") err, ";", icyl, ";", globalData%icycle-1, ";", rpm, ";"
+                    close(8)
+                 end if
+                 !END DEBUG
+            end if
+            myData%converge_var_old = converge_var_new
+            myData%converge_var_new = 0.0
+        endif
+    end if
+
+
     ! Computing heat losses
     call heat_transfer(myData, globalData, Ucyl, Area, &
          cyl(icyl)%gas_properties%cp, dQ_ht, t_wall)

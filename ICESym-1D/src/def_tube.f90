@@ -6,7 +6,7 @@ module def_tube
 
   type, BIND(C) :: this
      integer(C_INT) :: nnod, ndof,nnod_input
-     real(C_DOUBLE) :: longitud, dt_max
+     real(C_DOUBLE) :: longitud, dt_max, Text, esp, K
      integer(C_INT) :: t_left,t_right, type
   end type this
 
@@ -29,7 +29,7 @@ contains
    end subroutine state_initial_tube
 
   subroutine solve_tube(myData, globalData, state, new_state, xnod, hnod, &
-       Area, Twall, curvature, dAreax, itube, Text, esp, K, Ts) BIND(C)
+       Area, Twall, curvature, dAreax, itube, Ts) BIND(C)
 
     use def_valve
     use gasdyn_utils
@@ -41,9 +41,9 @@ contains
     real(C_DOUBLE) :: new_state(0:(myData%nnod*myData%ndof)-1)
     real(C_DOUBLE), dimension(myData%nnod-1) :: hnod
     real(C_DOUBLE), dimension(myData%nnod) :: xnod, Area, Twall, curvature, dAreax, Ts
-    real(C_DOUBLE) :: esp, K, Text
 
     integer :: i,j,fixed
+    logical :: exist
     real*8 :: ga,dt,dx
     real*8, dimension(5) :: prop_g
     real*8, dimension(myData%nnod-1) :: tau,tau1
@@ -51,6 +51,7 @@ contains
     real*8, dimension(3,myData%nnod_input) :: Uref
     real*8, dimension(3) :: Upipe, Uthroat, Urv, Upv, RHS
     real*8, dimension(3,2) :: Upv2
+    real*8, dimension(mydata%nnod) :: temp,pres,rho
 
     integer :: scheme, solved_case
 
@@ -96,8 +97,18 @@ contains
     end if
 
     call fluxa(U, Area, ga, myData%nnod, scheme, Fa)
-    call source(U, dAreax, Area, prop_g, Twall, myData%nnod, H, scheme, Text, esp, K, Ts)
+    call source(U, dAreax, Area, prop_g, Twall, myData%nnod, H, scheme, mydata%Text, mydata%esp, mydata%K, Ts)
     call fluxTVD(U, Fa, H, dt, tau, ga, myData%nnod, F_TVD)
+
+    !DEBUG
+    if (.FALSE.) then
+        if (sum(F_TVD)/sum(F_TVD).ne.1) then
+            write(*,*) "ERROR: NAN en variable F_TVD en solve_tube. TIME: ", globaldata%time
+            write(*,*) "INFO: Check model file. Look for typos or wrong data type in variable declaration."
+            read(*,*)
+        end if
+    end if
+    !DEBUG
 
     forall(i = 2:myData%nnod-1, j = 1:3)
        U(j,i)=U(j,i)-tau(i)*(F_TVD(j,i)-F_TVD(j,i-1))+dt*H(j,i)
@@ -126,12 +137,13 @@ contains
 
        call rhschar(Upv, Area(1), dAreax(1), Twall(1), ga, &
             globalData%R_gas, globalData%dt, &
-            globalData%viscous_flow, globalData%heat_flow, RHS)
+            globalData%viscous_flow, globalData%heat_flow, RHS, Ts(1), myData%esp, myData%K, myData%Text)
 
        ! call solve_valve_implicit(Urv, Upv2, -1, 0.9*Area(1), &
        !      Area(1), RHS, ga, Upipe, Uthroat, solved_case)
        ! Uref(:,1) = Upipe
     end if
+
     call bc_tubes(U(:,1), Uref(:,1), U_old(:,2), ga, -1, dt, dx, fixed)
     ! call bc_tubes(U(:,1), Uref(:,1), U(:,2), ga, -1, dt, dx, fixed)
     fixed = 0
@@ -147,7 +159,7 @@ contains
 
        call rhschar(Upv, Area(myData%nnod), dAreax(myData%nnod), &
             Twall(myData%nnod), ga, globalData%R_gas, globalData%dt, &
-            globalData%viscous_flow, globalData%heat_flow, RHS)
+            globalData%viscous_flow, globalData%heat_flow, RHS, Ts(myData%nnod), myData%esp, myData%K, myData%Text)
 
        ! call solve_valve_implicit(Urv, Upv2, 1, 0.9*Area(myData%nnod), &
        !      Area(myData%nnod), RHS, ga, Upipe, Uthroat, solved_case)
@@ -166,6 +178,25 @@ contains
           new_state(i*myData%ndof+j) = Up(j+1,i+1)
        enddo
     enddo
+
+    !DEBUG
+    if (.FALSE.) then
+        pres    = (U(3,:)-0.5*U(2,:)**2/U(1,:))*(prop_g(2)-1)
+        temp = pres/U(1,:)/prop_g(5)
+        inquire(file="tube_debug.csv", exist=exist)
+        if (exist) then
+            open(8, file="tube_debug.csv", status="old", position="append", action="write")
+        else
+            open(8, file="tube_debug.csv", status="new", action="write")
+        end if
+        write(8,"(F20.3,A1,F20.3,A1,F20.3,A1, F20.3,A1,F20.3,A1,F20.3,A1, F20.3,A1,F20.3,A1,F20.3,A1, I2,A1,F10.5)") &
+            H(3,1),";", H(3,floor(mydata%nnod*0.5)), ";", H(3,mydata%nnod), ";", &
+            pres(1), ";", pres(floor(mydata%nnod*0.5)), ";", pres(mydata%nnod), ";", &
+            temp(1), ";", temp(floor(mydata%nnod*0.5)), ";", temp(mydata%nnod), ";", &
+            itube, ";", globaldata%time
+        close(8)
+    end if
+    !END DEBUG
 
     ! myData%dt_max = dt
     call critical_dt(globalData, Up, hnod, myData%nnod, ga, myData%dt_max)
@@ -279,7 +310,7 @@ contains
     integer :: viscous_flow,heat_flow,i
     real*8, dimension(nnod) :: B_aire,K_aire,nu_aire,Tf,delta_T
     real*8 :: co_mu(2),ga,g1,R_gas,cp,Pr
-    real*8 :: th_equiv,cf_codo,alfa_ext,h_cond,Ts_prom
+    real*8 :: th_equiv,cf_codo,alfa_ext,h_cond
     real*8, dimension(nnod) :: a1,a_ext,a_int, U_eq, dQ_dt
     real*8, dimension(nnod) :: pres,temp,rho,rho_vel
     real*8, dimension(nnod) :: dia,mu,Re,ff,cf_rect,cf
@@ -295,6 +326,7 @@ contains
     cp = R_gas*ga/g1
 
     h = 0.0d0
+    qptot = 0.0d0
     if(scheme.eq.0) then
        pres    = (U(3,:)-0.5*U(2,:)**2/U(1,:))*g1/area
        rho     = U(1,:)/area
@@ -319,6 +351,8 @@ contains
     mu = co_mu(1)*Temp**1.5/(co_mu(2)+Temp)
     Re = dabs(rho_vel) * dia / mu
     Re = dmax1(Re,1.0d-10)
+    Pr    = 0.71
+    kappa = mu*cp/Pr
 
     if(viscous_flow.eq.1) then
        cf_codo = 0.0d0
@@ -332,81 +366,14 @@ contains
 
     if(heat_flow.eq.1) then
       ! Pruebo la correlacion que puse en la tesis
-      Pr    = 0.71
-      kappa = mu*cp/Pr
-      qptot = 0.0395*kappa*Re**0.75*Pr**(1./3.)*(Twall-Temp)/dia**2
-
-      !DEBUG
-      if (K.eq.46) then
-         inquire(file="HT_tube0_ht1.csv", exist=exist)
-         if (exist) then
-            open(7, file="HT_tube0_ht1.csv", status="old", position="append", action="write")
-         else
-            open(7, file="HT_tube0_ht1.csv", status="new", action="write")
-         endif
-         write(7,*) qptot(1),";", qptot(floor(nnod*0.5)), ";", qptot(nnod), ";"
-         close(7)
-      else if(K.eq.47) then
-         inquire(file="HT_tube3_ht1.csv", exist=exist)
-         if (exist) then
-            open(8, file="HT_tube3_ht1.csv", status="old", position="append", action="write")
-         else
-            open(8, file="HT_tube3_ht1.csv", status="new", action="write")
-         end if
-         write(8,*) qptot(1),";", qptot(floor(nnod*0.5)), ";", qptot(nnod), ";"
-         close(8)
-      endif
-
-      !DEBUG
-      if (K.eq.46) then
-         inquire(file="P_tube0_ht1.csv", exist=exist)
-         if (exist) then
-            open(3, file="P_tube0_ht1.csv", status="old", position="append", action="write")
-         else
-            open(3, file="P_tube0_ht1.csv", status="new", action="write")
-         endif
-         write(3,*) pres(nnod), ";"
-         close(3)
-      else if(K.eq.47) then
-         inquire(file="P_tube3_ht1.csv", exist=exist)
-         if (exist) then
-            open(4, file="P_tube3_ht1.csv", status="old", position="append", action="write")
-         else
-            open(4, file="P_tube3_ht1.csv", status="new", action="write")
-         endif
-         write(4,*) pres(1), ";"
-         close(4)
-      endif
-
-      !DEBUG
-      if (K.eq.46) then
-         inquire(file="Temp_tube0_ht1.csv", exist=exist)
-         if (exist) then
-            open(1, file="Temp_tube0_ht1.csv", status="old", position="append", action="write")
-         else
-            open(1, file="Temp_tube0_ht1.csv", status="new", action="write")
-         endif
-         write(1,*) Temp(1), ";", Temp(floor(nnod*0.5)), ";", Temp(nnod), ";", Twall(1)
-         close(1)
-      else if(K.eq.47) then
-         inquire(file="Temp_tube3_ht1.csv", exist=exist)
-         if (exist) then
-            open(2, file="Temp_tube3_ht1.csv", status="old", position="append", action="write")
-         else
-            open(2, file="Temp_tube3_ht1.csv", status="new", action="write")
-         endif
-         write(2,*) Temp(1), ";", Temp(floor(nnod*0.5)), ";", Temp(nnod), ";", Twall(1)
-         close(2)
-      endif
+      qptot = 4*0.0395*kappa*Re**0.75*Pr**(1./3.)*(Twall-Temp)/dia**2
 
       !  heat transfer source
       h(3,:) = h(3,:)+qptot
 
     else if(heat_flow.eq.2) then
-      Pr = 0.71
       R_int = dia*0.5
       R_ext = (dia+esp*2)*0.5
-      kappa = mu*cp/Pr
       Tf = (Text+Ts)/2 !Temperatura media de capa
       K_aire = 0.02624*(Tf/300)**0.8646 !coeficiente de conducitivad termica
       nu_aire = 1.458*Tf**2.5/((38970+Tf*353)*10**6) !viscosidad cinematica
@@ -414,15 +381,6 @@ contains
       Ra = 9.8*B_aire*Pr*dabs(Ts-Text)*(2*R_ext)**3/(nu_aire**2) !numero de Rayleigh
       h_ext = K_aire*(0.6+0.32128*Ra**(1./6.))/(2*R_ext) !uso Pr=0.71 en 0.32128
       h_int = 0.0395*kappa*Re**0.75*Pr**(1./3.)/(2*R_int)
-
-      where(h_ext < 1d-6)
-         h_ext=1d-6
-      end where
-
-      where (h_int < 1d-6)
-         h_int=1d-6
-      end where
-
       U_eq = dlog(R_ext/R_int)*R_int/K+R_int/(R_ext*h_ext)+1/h_int
       dQ_dt = (Text-Temp)/U_eq
       qptot = 4*dQ_dt/dia
@@ -433,72 +391,8 @@ contains
       a1 = dlog(R_ext/R_int)
       Ts = (a1*Text+K*Temp/a_ext+K*Text/a_int)/(a1+K*(1/a_ext+1/a_int))
 
-      !DEBUG
-      if (K.eq.46) then
-         inquire(file="Temp_tube0_ht2.csv", exist=exist)
-         if (exist) then
-            open(1, file="Temp_tube0_ht2.csv", status="old", position="append", action="write")
-         else
-            open(1, file="Temp_tube0_ht2.csv", status="new", action="write")
-         endif
-         write(1,*) Temp(1), ";", Temp(floor(nnod*0.5)), ";", Temp(nnod), ";", Twall(1)
-         close(1)
-      else if(K.eq.47) then
-         inquire(file="Temp_tube3_ht2.csv", exist=exist)
-         if (exist) then
-            open(2, file="Temp_tube3_ht2.csv", status="old", position="append", action="write")
-         else
-            open(2, file="Temp_tube3_ht2.csv", status="new", action="write")
-         endif
-         write(2,*) Temp(1), ";", Temp(floor(nnod*0.5)), ";", Temp(nnod), ";", Twall(1)
-         close(2)
-      endif
-
-      !DEBUG
-      if (K.eq.46) then
-         inquire(file="P_tube0_ht2.csv", exist=exist)
-         if (exist) then
-            open(3, file="P_tube0_ht2.csv", status="old", position="append", action="write")
-         else
-            open(3, file="P_tube0_ht2.csv", status="new", action="write")
-         endif
-         write(3,*) pres(nnod), ";"
-         close(3)
-      else if(K.eq.47) then
-         inquire(file="P_tube3_ht2.csv", exist=exist)
-         if (exist) then
-            open(4, file="P_tube3_ht2.csv", status="old", position="append", action="write")
-         else
-            open(4, file="P_tube3_ht2.csv", status="new", action="write")
-         endif
-         write(4,*) pres(1), ";"
-         close(4)
-      endif
-
       !  heat transfer source
       h(3,:) = h(3,:)+qptot
-
-      !DEBUG
-      if (K.eq.46) then
-         inquire(file="HT_tube0_ht2.csv", exist=exist)
-         if (exist) then
-            open(7, file="HT_tube0_ht2.csv", status="old", position="append", action="write")
-         else
-            open(7, file="HT_tube0_ht2.csv", status="new", action="write")
-         endif
-         write(7,*) qptot(1),";", qptot(floor(nnod*0.5)), ";", qptot(nnod), ";"
-         close(7)
-      else if(K.eq.47) then
-         inquire(file="HT_tube3_ht2.csv", exist=exist)
-         if (exist) then
-            open(8, file="HT_tube3_ht2.csv", status="old", position="append", action="write")
-         else
-            open(8, file="HT_tube3_ht2.csv", status="new", action="write")
-         end if
-         write(8,*) qptot(1),";", qptot(floor(nnod*0.5)), ";", qptot(nnod), ";"
-         close(8)
-      endif
-
     endif
 
   end subroutine source

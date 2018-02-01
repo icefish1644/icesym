@@ -10,7 +10,7 @@ module gasdyn_utils
 contains
 
   subroutine rhschar(U, Area, dAreax, Twall, ga, R_gas, dt, &
-       viscous_flow, heat_flow, RHS)
+       viscous_flow, heat_flow, RHS, Ts, esp, K, Text)
     !
     !  Computes the RHS of compatibility equations
     !
@@ -18,7 +18,7 @@ contains
     implicit none
 
     integer, intent(in) :: viscous_flow,heat_flow
-    real*8, intent(in) :: Area,dAreax,Twall,dt,ga,R_gas
+    real*8, intent(in) :: Area,dAreax,Twall,dt,ga,R_gas,Ts,esp,K,Text
     real*8, dimension(3), intent(in) :: U
     real*8, dimension(3), intent(out) :: RHS
 
@@ -35,7 +35,7 @@ contains
     a = dsqrt(ga*pre/rho)
 
     call source_char(U, dAreax, area, Twall, ga, R_gas, viscous_flow, &
-         heat_flow,alpha, G, qptot)
+         heat_flow,alpha, G, qptot,Ts,esp,K,Text)
 
     ! RHS Path line
     RHS1 = g1/(ga*pre)*(qptot+rho*vel*G)*dt
@@ -55,7 +55,7 @@ contains
   end subroutine rhschar
   
   subroutine source_char(U, dAreax, area, Twall, ga, R_gas, &
-       viscous_flow, heat_flow, alpha, G, qptot)
+       viscous_flow, heat_flow, alpha, G, qptot, Ts, esp, K, Text)
     !
     !  Computes the source term for 
     !    variable section,
@@ -68,13 +68,16 @@ contains
     implicit none
 
     integer, intent(in) :: viscous_flow,heat_flow
-    real*8, intent(in) :: dAreax,Area,Twall,ga,R_gas
+    real*8, intent(in) :: dAreax,Area,Twall,ga,R_gas,Ts,esp,K,Text
     real*8, dimension(3), intent(in) :: U
     real*8, intent(out) :: alpha,G,qptot
 
     real*8 :: g1,cp,Pr
     real*8 :: cf_codo,kappa
     real*8 :: pres,temp,rho,vel,dia,mu,Re,ff,cf_rect,cf
+    real*8 :: a1,a_ext,a_int, U_eq, dQ_dt, h_int,h_ext,ra,R_ext,R_int
+    real*8 :: B_aire,K_aire,nu_aire,Tf,delta_T
+
 
     g1 = ga-1.
     cp = R_gas*ga/g1
@@ -106,13 +109,28 @@ contains
        G = cf/2.0*vel*dabs(vel)
     endif
 
-    if(heat_flow.eq.1) then
-       ! Pruebo la correlacion que puse en la tesis
-       Pr    = 0.71
-       kappa = mu*cp/Pr
-       !  heat transfer source
-       qptot = pi*0.0297*kappa*Re**0.75*Pr**(1./3.)*(Twall-Temp)
+    Pr    = 0.71
+    kappa = mu*cp/Pr
+
+    if(heat_flow.eq.1 .or. (heat_flow.eq.2 .and. K.eq.0)) then
+        ! Pruebo la correlacion que puse en la tesis
+        !  heat transfer source
+        qptot = 4*0.0395*kappa*Re**0.75*Pr**(1./3.)*(Twall-Temp)/dia**2
+    else if(heat_flow.eq.2 .and. K.ne.0) then
+        R_int = dia*0.5
+        R_ext = (dia+esp*2)*0.5
+        Tf = (Text+Ts)/2 !Temperatura media de capa
+        K_aire = 0.02624*(Tf/300)**0.8646 !coeficiente de conducitivad termica
+        nu_aire = 1.458*Tf**2.5/((38970+Tf*353)*10**6) !viscosidad cinematica
+        B_aire = 1/Tf !coeficiente de compresibilidad volumetrico
+        Ra = 9.8*B_aire*Pr*dabs(Ts-Text)*(2*R_ext)**3/(nu_aire**2) !numero de Rayleigh
+        h_ext = K_aire*(0.6+0.32128*Ra**(1./6.))/(2*R_ext) !uso Pr=0.71 en 0.32128
+        h_int = 0.0395*kappa*Re**0.75*Pr**(1./3.)/(2*R_int)
+        U_eq = dlog(R_ext/R_int)*R_int/K+R_int/(R_ext*h_ext)+1/h_int
+        dQ_dt = (Text-Temp)/U_eq
+        qptot = 4*dQ_dt/dia
     endif
+
 
   end subroutine source_char
 

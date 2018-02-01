@@ -1,0 +1,15 @@
+.DS_Store
+ICESym-1D/src/.cproject
+ICESym-1D/src/.Rhistory
+ICESym-1D/src/.project
+ICESym-1D/src/build.sh
+*.pyc
+.idea/*
+ICESym-1D/release/
+ICESym-1D/src/build/
+ICESym-1D/src/tests/
+ICESym-GUI/tests/
+ICESym-1D/src/.deps/
+ICESym-GUI/printData.txt
+ICESym-1D/src/printData.txt
+.idea/icesym.iml

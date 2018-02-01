@@ -113,6 +113,10 @@ cdef extern from "cylinder.h":
 		double major_radius
 		double minor_radius
 		double chamber_heigh
+		# Definiciones para chequeo de convergencia
+		int converge_mode
+		double converge_var_old
+		double converge_var_new
 		
 		Scavenge scavenge_data
 		fuel fuel_data
@@ -130,7 +134,8 @@ cdef extern from "cylinder.h":
 						 fuel fuel_data, combustion combustion_data, injection injection_data,
 						 valvevec intake_valves, valvevec exhaust_valves, Scavenge scavenge_data, 
 						 int extras, int species_model, int nvanes, double major_radius, double minor_radius,
-						 double chamber_heigh)
+						 double chamber_heigh, int converge_mode, double converge_var_old,
+						  double converge_var_new)
 	void del_Cylinder "delete" (c_Cylinder *cyl)
 	c_Cylinder copyCylinder "new Cylinder" (c_Cylinder* c)
 	
@@ -203,21 +208,15 @@ cdef class Cylinder:
 		onlyAssert(kargs,'twall','Cylinder')
 		cdef doublevec twall = doublevec_factory(0)
 		
-		cdef double t_prom 
-		#print len(kargs['twall'])
-		#print kargs['twall']
+		cdef double t_prom = 0
 		for i in range(len(kargs['twall'])):
-		
 			twall.push_back(kargs['twall'][i])
-			
 		if (len(kargs['twall']) == 1):
 			twall.push_back(kargs['twall'][0])
 			twall.push_back(kargs['twall'][0])
 		elif (len(kargs['twall']) == 2):
 			t_prom = (kargs['twall'][0]+kargs['twall'][1])/2
 			twall.push_back(t_prom)
-				
-		#cdef double twall = validatePositive(kargs,'twall','Cylinder')
 
 		cdef int type_ig       = assignOptional(kargs,'type_ig',0)
 		cdef int full_implicit = boolean(kargs,'full_implicit','Cylinder',1)
@@ -436,6 +435,11 @@ cdef class Cylinder:
 			for i in range(len(xbdot)): #[key1,value1,key2,value2,....,keyN,valueN]
 				combustion_data.xbdot_array.push_back(xbdot[i][0])
 				combustion_data.xbdot_array.push_back(xbdot[i][1])
+
+		#Condiciones para convergencia
+		cdef int converge_mode = assignOptional(kargs,'converge_mode',0)
+		cdef double converge_var_old = 0.0
+		cdef double converge_var_new = 0.0
 				
 		#instancio la clase
 		self.thisptr = new_Cylinder(nnod, ndof, nnod_input, implicit, state_ini, histo, label, Bore, crank_radius,
@@ -444,7 +448,7 @@ cdef class Cylinder:
 					    factor_ht, scavenge, scavenge_type, type_ig, full_implicit,fuel_data,
 					    combustion_data, injection_data, intake_valves, exhaust_valves, 
 					    scavenge_data, extras, species_model, nvanes, major_radius, minor_radius,
-					    chamber_heigh)
+					    chamber_heigh, converge_mode, converge_var_old, converge_var_new)
 
 	def __dealloc__(self):
 		del_Cylinder(self.thisptr)

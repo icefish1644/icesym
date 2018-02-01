@@ -71,7 +71,7 @@ contains
        Twall_P  = twall_tube(i)
        
        call rhschar(U, Area_P, dAreax_P, Twall_P, ga, R_gas, dt, &
-            viscous_flow, heat_flow, RHS)
+            viscous_flow, heat_flow, RHS, 0.0d0, 0.0d0, 0.0d0, 0.0d0)
        RHSv(:,i) = RHS
     end do
 

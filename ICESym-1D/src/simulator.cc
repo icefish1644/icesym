@@ -44,7 +44,7 @@ Simulator::Simulator(double dt, double tf, int nrpms, vector<double> rpms,
 					 vector<Atmosphere> atmospheres, 
 					 int get_state, int calc_engine_data, 
 					 int use_global_gas_prop, double ga_intake, 
-					 double ga_exhaust){
+					 double ga_exhaust, int has_converged, double tol){
 	this->dt = dt;
 	this->tf = tf;
 	this->nrpms = nrpms;
@@ -85,6 +85,8 @@ Simulator::Simulator(double dt, double tf, int nrpms, vector<double> rpms,
 	this->use_global_gas_prop = use_global_gas_prop;
 	this->ga_intake = ga_intake;
 	this->ga_exhaust = ga_exhaust;
+	this->has_converged = has_converged;
+	this->tol = tol;
 
 	this->irpm = 0;
 
@@ -508,7 +510,8 @@ void Simulator::solverEngine(){
 		icycle = 1;
 		omega  = 2.*pi*rpms[irpm]/60.;
 		iteration = 1;
-		while(icycle<=ncycles){
+		while(icycle<=ncycles && has_converged<ncyl){
+		    has_converged = 0;
 			time += dt;
 			theta = fmod(omega*time, theta_cycle);
 			/** For the MRCVC engine, the chambers use the same
@@ -527,9 +530,10 @@ void Simulator::solverEngine(){
 				lcycle = icycle;
 			}
 			this->crank_angle = theta*180./pi;
+
 			if(iteration%show_info==0)
 				cout<<"cycle: "<<icycle<<" - crank angle: "
-					<<crank_angle<<" deg"<<" - rpm: "<<rpms[irpm]<<endl;
+					<<crank_angle<<"  deg"<<" - rpm: "<<rpms[irpm]<<endl;
 
 			if(nappend>0){
 				if(iteration%nappend==0){ // aca usar nappend
@@ -548,6 +552,8 @@ void Simulator::solverEngine(){
 		closeFortranUnits();
 		createHeaderFile();	// this rpm was calculated. Refresh header file
 		// compressFiles(); //compress files and clean the .txt
+
+
 	}
 	if(this->nsave!=0)		
 		saveState();
@@ -570,6 +576,7 @@ void Simulator::solveStep(){
 	//cout<<"Pasa tubes"<<endl;
 	for(int i=0;i<ncyl;i++){
 		cylinders[i].solver(globalData,Xn,Xn1,false);
+		this->has_converged = globalData.has_converged;
 	}
 	//cout<<"Pasa Cylinders"<<endl;
 	for(int i=0;i<njunc;i++){
@@ -776,6 +783,8 @@ void Simulator::makeStruct(dataSim &data){
 	data.use_global_gas_prop = (this->use_global_gas_prop ? true : false);
 	data.ga_intake  = this->ga_intake;
 	data.ga_exhaust = this->ga_exhaust;
+	data.has_converged = this->has_converged;
+	data.tol = this->tol;
 }
 
 /**

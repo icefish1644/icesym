@@ -98,6 +98,9 @@ void Tube::makeStruct(dataTube &data){
 	data.t_left     = strcmp(this->tleft,"atmosphere");
 	data.t_right    = strcmp(this->tright,"atmosphere");
 	data.type       = this->type;
+	data.K          = this->K;
+	data.Text       = this->Text;
+	data.esp        = this->esp;
 }
 
 /**
@@ -117,10 +120,10 @@ void Tube::undoStruct(dataTube &data){
 void Tube::calculate(dataSim &globalData){
 	dataTube myData;
 	makeStruct(myData);
+
 	solve_tube(&myData, &globalData, &(this->state[0]), &(this->new_state[0]), &(this->xnod[0]),
 			   &(this->hele[0]), &(this->Area[0]), &(this->twall[0]), &(this->curvature[0]),
-			   &(this->dAreax[0]), &(this->itube),
-			 	 &(this->Text), &(this->esp), &(this->K), &(this->Ts[0]));
+			   &(this->dAreax[0]), &(this->itube), &(this->Ts[0]));
 	undoStruct(myData);
 }
 

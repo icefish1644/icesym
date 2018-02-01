@@ -428,10 +428,14 @@ class PostProcess(wx.Frame):
 		plot_canvas.SetShowScrollbars(True)
 		plot_canvas.SetFontSizeLegend(9)
 		plot_canvas.SetFontSizeTitle(8)
-		plot_canvas.SetUseScientificNotation(True)
-		plot_canvas.SetEnableZoom(True)
-		plot_canvas.SetFontSizeAxis(point=8)
-		plot_canvas.SetFontSizeTitle(point=10)
+		#plot_canvas.SetUseScientificNotation(True)
+		#plot_canvas.SetEnableZoom(True)
+		#plot_canvas.SetFontSizeAxis(point=8)
+		#plot_canvas.SetFontSizeTitle(point=10)
+
+		plot_canvas.useScientificNotation
+		plot_canvas.enableZoom
+
 
 		lines = []
 		title = ''
