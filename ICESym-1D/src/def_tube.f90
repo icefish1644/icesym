@@ -181,21 +181,25 @@ contains
 
     !DEBUG
     if (.FALSE.) then
-        pres    = (U(3,:)-0.5*U(2,:)**2/U(1,:))*(prop_g(2)-1)
-        temp = pres/U(1,:)/prop_g(5)
-        inquire(file="tube_debug.csv", exist=exist)
-        if (exist) then
-            open(8, file="tube_debug.csv", status="old", position="append", action="write")
-        else
-            open(8, file="tube_debug.csv", status="new", action="write")
+        if (mod(globaldata%iter_sim1d,10)==0) then
+            pres    = (U(3,:)-0.5*U(2,:)**2/U(1,:))*(prop_g(2)-1)
+            temp = pres/U(1,:)/prop_g(5)
+            inquire(file="tube_debug.csv", exist=exist)
+            if (exist) then
+                open(8, file="tube_debug.csv", status="old", position="append", action="write")
+            else
+                open(8, file="tube_debug.csv", status="new", action="write")
+            end if
+            write(8,"(F20.3,A1,F20.3,A1,F20.3,A1, F20.3,A1,F20.3,A1,F20.3,A1, &
+                F20.3,A1,F20.3,A1,F20.3,A1, I2,A1,F10.5)") &
+                H(3,1),";", H(3,floor(mydata%nnod*0.5)), ";", H(3,mydata%nnod), ";", &
+                pres(1), ";", pres(floor(mydata%nnod*0.5)), ";", pres(mydata%nnod), ";", &
+                temp(1), ";", temp(floor(mydata%nnod*0.5)), ";", temp(mydata%nnod), ";", &
+                itube, ";", globaldata%time
+            close(8)
         end if
-        write(8,"(F20.3,A1,F20.3,A1,F20.3,A1, F20.3,A1,F20.3,A1,F20.3,A1, F20.3,A1,F20.3,A1,F20.3,A1, I2,A1,F10.5)") &
-            H(3,1),";", H(3,floor(mydata%nnod*0.5)), ";", H(3,mydata%nnod), ";", &
-            pres(1), ";", pres(floor(mydata%nnod*0.5)), ";", pres(mydata%nnod), ";", &
-            temp(1), ";", temp(floor(mydata%nnod*0.5)), ";", temp(mydata%nnod), ";", &
-            itube, ";", globaldata%time
-        close(8)
     end if
+
     !END DEBUG
 
     ! myData%dt_max = dt
@@ -937,6 +941,7 @@ contains
                    cyl(k)%exhaust_valves(i)%state_ref(j,2) = &
                         U(j,1)-dx_S/hnod(1)*(U(j,2)-U(j,1))
                 end do
+
                 if(any(isnan(cyl(k)%exhaust_valves(i)%state_ref(j,:)))) then
                    write(*,*) 'CYL: ', k, ' - U: ', U, ' - dx: ', &
                         dx_S/hnod(1), dx_R/hnod(1)

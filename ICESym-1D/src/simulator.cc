@@ -547,6 +547,7 @@ void Simulator::solverEngine(){
 				}
 			}
 			iteration++;
+			iter_sim1d = iteration;
 		}
 		this->final_times.push_back(time);
 		closeFortranUnits();
