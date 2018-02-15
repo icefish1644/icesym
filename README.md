@@ -17,7 +17,23 @@ wxwidgets for python 2.7 (only for GUI)
 install dependencies \
 clone git repo \
 open terminal in repo's root directory \
-run build.sh script 
+run build.sh script
+
+# Install on Ubuntu:
+sudo apt-get update
+sudo apt-get install python2.7 python2.7-dev python-numpy gfortran build-essential cython git nano
+git clone https://github.com/manu080797/icesym
+cd icesym/ICESym-1D/src
+sudo make install -B
+python2.7 exec.py (modify exec.py to match your file location)
+
+# Install on Fedora:
+sudo dnf update
+sudo dnf install python2 python2-devel gcc gcc-c++ gcc-gfortran python2-Cython numpy make binutils git nano
+git clone https://github.com/manu080797/icesym
+cd icesym/ICESym-1D/src
+sudo make install -B
+python2.7 exec.py (modify exec.py to match your file location)
 
 # Install on macos:
 install dependencies using brew \

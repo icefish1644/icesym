@@ -137,7 +137,6 @@ class Simulator
 	vector<Tank> tanks;
 	vector<Atmosphere> atmospheres;
 
-	static constexpr double pi =  3.1415926;
 };
 
 extern "C"{

@@ -22,6 +22,7 @@
 #include <limits.h>
 #include <sstream>
 #include <vector>
+#include <cmath>
 
 double modulo(double x, double y){
 	return x-y*floor(x/y);
@@ -508,7 +509,7 @@ void Simulator::solverEngine(){
 		time   = 0.0;
 		lcycle = 1;
 		icycle = 1;
-		omega  = 2.*pi*rpms[irpm]/60.;
+		omega  = 2.*M_PI*rpms[irpm]/60.;
 		iteration = 1;
 		while(icycle<=ncycles && has_converged<ncyl){
 		    has_converged = 0;
@@ -523,13 +524,13 @@ void Simulator::solverEngine(){
 			// if(engine_type==2) correct_state_tubes(theta);
 			actualizeState(); //actualizo al nuevo estado global
 			actualizeDt();
-			// icycle = floor((theta/nstroke)*pi)+1;
+			// icycle = floor((theta/nstroke)*M_PI)+1;
 			icycle = floor(omega*time/theta_cycle)+1;
 			if(!this->use_global_gas_prop && icycle!=lcycle){
 				correct_gamma_exhaust(&(this->ga_exhaust));
 				lcycle = icycle;
 			}
-			this->crank_angle = theta*180./pi;
+			this->crank_angle = theta*180./M_PI;
 
 			if(iteration%show_info==0)
 				cout<<"cycle: "<<icycle<<" - crank angle: "
@@ -628,7 +629,7 @@ void Simulator::SetTimeStep(double dT){
 */
 void Simulator::SetTime(double t, int irpm){
 	time  = t;
-	omega = 2.*pi*rpms[irpm]/60.;
+	omega = 2.*M_PI*rpms[irpm]/60.;
 	theta = fmod(omega*time, theta_cycle);
 }
 
@@ -1125,7 +1126,7 @@ void Simulator::createHeaderFile(){
 			else
 				archim<<this->final_times[i]<<"]"<<endl<<endl;
 		}
-		archim<<"nstroke = "<<theta_cycle/pi<<endl;
+		archim<<"nstroke = "<<theta_cycle/M_PI<<endl;
 		archim<<"ncycles = "<<ncycles<<endl;
 		archim<<"rho = "<<Xn[0]<<endl;
 		archim<<"Globals = dict()"<<endl;
@@ -1218,7 +1219,7 @@ void Simulator::createHeaderFile(){
 				if(cylinders[i].exhaust_valves[j].angle_VC > angleClose)
 					angleClose = cylinders[i].exhaust_valves[j].angle_VC;
 			}	
-			archim<<"Cylinder"<<i<<"['angleClose'] = "<<angleClose*180/pi<<endl;
+			archim<<"Cylinder"<<i<<"['angleClose'] = "<<angleClose*180/M_PI<<endl;
 			archim<<"Cylinders.append(Cylinder"<<i<<")"<<endl<<endl;	
 		}
 		archim.close();
