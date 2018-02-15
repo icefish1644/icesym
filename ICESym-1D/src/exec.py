@@ -5,12 +5,12 @@ import sys
 import os
 from simCythonCPP import Simulator
 
-sys.path.append("/Users/manu/Documents/Ingeniería/Proyecto investigación/icesym/ICESym-GUI/saves")
-os.system("rm /Users/manu/Documents/Ingeniería/Proyecto investigación/icesym/ICESym-GUI/saves*.pyc ")
+sys.path.append("/icesym/ICESym-GUI/saves")
+os.system("rm /icesym/ICESym-GUI/saves*.pyc ")
 os.system("rm cyl_debug.csv ")
 os.system("rm tube_debug.csv ")
 os.system("rm convergence_debug.csv ")
-data = __import__("prueba")
+data = __import__("multicyl4TSI")
 now = time.time()
 Sim = Simulator(**data.kargs)
 print "termina de inicializar"
