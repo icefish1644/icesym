@@ -866,7 +866,7 @@ contains
     real*8, dimension(3,nnod), intent(in) :: Uc
 
     integer :: i,j,k
-    real*8 :: dx_S,dx_R ! ,vchar_plus,vchar_minus,vchar_0
+    real*8 :: dx_S,dx_R,tmp ! ,vchar_plus,vchar_minus,vchar_0
     real*8, dimension(2) :: vchar_plus,vchar_minus,vchar_0
     real*8, dimension(3,2) :: U
 
@@ -942,7 +942,9 @@ contains
                         U(j,1)-dx_S/hnod(1)*(U(j,2)-U(j,1))
                 end do
 
-                if(any(isnan(cyl(k)%exhaust_valves(i)%state_ref(j,:)))) then
+                !if(any(isnan(cyl(k)%exhaust_valves(i)%state_ref(j,:)))) then
+                tmp = sum(cyl(k)%exhaust_valves(i)%state_ref(j,:))
+                if ((tmp/tmp).ne.1) then
                    write(*,*) 'CYL: ', k, ' - U: ', U, ' - dx: ', &
                         dx_S/hnod(1), dx_R/hnod(1)
                    write(*,*) Uc
