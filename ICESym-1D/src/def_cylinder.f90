@@ -1905,7 +1905,7 @@ contains
                  write(*,"(A26,I3,A2,F10.9,A13,I2)") "Error relativo en el ciclo", globalData%icycle-1, ": ", &
                          err, " - Cilindro: ", icyl
                  if (err.le.globalData%tol) then
-                    write(*,"(A41,I2,A13,I2)") "Se alcanzó la convergencia segun criterio", converge_mode, &
+                    write(*,"(A42,I2,A13,I2)") "Se alcanzó la convergencia segun criterio", converge_mode, &
                             " - Cilindro: ", icyl
                     globalData%has_converged = globalData%has_converged+1
                  endif

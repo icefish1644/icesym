@@ -191,11 +191,11 @@ contains
                 open(8, file="tube_debug.csv", status="new", action="write")
             end if
             write(8,"(F20.3,A1,F20.3,A1,F20.3,A1, F20.3,A1,F20.3,A1,F20.3,A1, &
-                F20.3,A1,F20.3,A1,F20.3,A1, I2,A1,F10.5)") &
+                F20.3,A1,F20.3,A1,F20.3,A1, I2,A1,F10.5,A1,I4)") &
                 H(3,1),";", H(3,floor(mydata%nnod*0.5)), ";", H(3,mydata%nnod), ";", &
                 pres(1), ";", pres(floor(mydata%nnod*0.5)), ";", pres(mydata%nnod), ";", &
                 temp(1), ";", temp(floor(mydata%nnod*0.5)), ";", temp(mydata%nnod), ";", &
-                itube, ";", globaldata%time
+                itube, ";", globaldata%time, ";", globaldata%icycle
             close(8)
         end if
     end if
