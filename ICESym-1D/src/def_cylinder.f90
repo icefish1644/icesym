@@ -1972,6 +1972,22 @@ contains
     Ucyl(2) = p_cyl
     Ucyl(3) = T_cyl
 
+    !DEBUG
+    if (.FALSE.) then
+        if (mod(globaldata%iter_sim1d,10)==0) then
+            inquire(file="cylinder_debug.csv", exist=exist)
+            if (exist) then
+                open(13, file="cylinder_debug.csv", status="old", position="append", action="write")
+            else
+                open(13, file="cylinder_debug.csv", status="new", action="write")
+            end if
+            write(13,"(F12.10,A1,F12.10,A1,I4,A1,I4,A1,F10.5)") &
+                p_cyl, ";", t_cyl, ";", icyl, ";", globalData%icycle, ";", globalData%time
+            close(13)
+        end if
+    end if
+    !END DEBUG
+
     if(globalData%use_global_gas_prop) then
        ispecie = 0
        cyl(icyl)%gas_properties%cp = compute_cp(T_cyl, ispecie, &
