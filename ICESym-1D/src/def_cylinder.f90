@@ -1910,7 +1910,7 @@ contains
                     globalData%has_converged = globalData%has_converged+1
                  endif
                  !DEBUG
-                 if (.TRUE.) then
+                 if (.FALSE.) then
                     inquire(file="convergence_debug.csv", exist=exist)
                     if (exist) then
                         open(8, file="convergence_debug.csv", status="old", position="append", action="write")
@@ -1981,7 +1981,7 @@ contains
             else
                 open(13, file="cylinder_debug.csv", status="new", action="write")
             end if
-            write(13,"(F12.10,A1,F12.10,A1,I4,A1,I4,A1,F10.5)") &
+            write(13,"(F20.3,A1,F20.3,A1,I4,A1,I4,A1,F10.5)") &
                 p_cyl, ";", t_cyl, ";", icyl, ";", globalData%icycle, ";", globalData%time
             close(13)
         end if
