@@ -1166,7 +1166,7 @@ contains
 
 		if(myData%type_ig.eq.0) then
 			! SI Engine
-			C_r(i) = 4.25d-9*((T*l*2+twall**2)*(T+twall))
+			C_r(i) = 4.25d-9*((T**2+twall**2)*(T+twall))
 		elseif(myData%type_ig.eq.1) then
 			! CI Engine
 			C_r(i) = 3.2602d-8*((T**2+twall**2)*(T+twall))
@@ -1197,7 +1197,7 @@ contains
 		twall = t_wall(m+3)
 		if(myData%type_ig.eq.0) then
 			! SI Engine
-			C_r(m+3) = 4.25d-9*((T*l*2+twall**2)*(T+twall))
+			C_r(m+3) = 4.25d-9*((T**2+twall**2)*(T+twall))
 		elseif(myData%type_ig.eq.1) then
 			! CI Engine
 			C_r(m+3) = 3.2602d-8*((T**2+twall**2)*(T+twall))
