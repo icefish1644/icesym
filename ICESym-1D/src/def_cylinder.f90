@@ -1212,15 +1212,16 @@ contains
 
 	dQ_ht =  dQ_hth + dQ_htr
 
-	!DEBUG (Warning: assumes monocyl)
+	!DEBUG (warning: assumes monocyl engine)
     if (.FALSE.) then
-        inquire(file="cyl_debug.csv", exist=exist)
+        inquire(file="cyl_heat_debug.csv", exist=exist)
         if (exist) then
-            open(11, file="cyl_debug.csv", status="old", position="append", action="write")
+            open(11, file="cyl_heat_debug.csv", status="old", position="append", action="write")
         else
-            open(11, file="cyl_debug.csv", status="new", action="write")
+            open(11, file="cyl_heat_debug.csv", status="new", action="write")
         endif
-        write(11,"(F20.3,A1,F10.5,A1,F10.5)") dQ_ht, ";", C_r_medio, ";", globaldata%time
+        write(11,"(F20.3,A1,F10.5,A1,F10.5,A1,I4)") &
+                dQ_ht, ";", C_r_medio, ";", globaldata%time,";", globalData%icycle
         close(11)
     end if
 
