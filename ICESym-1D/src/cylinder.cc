@@ -32,7 +32,7 @@ Cylinder::Cylinder(unsigned int nnod, unsigned int ndof, unsigned int nnod_input
 				   double factor_ht, int scavenge, int scavenge_type, int type_ig, 
 				   int full_implicit, fuel fuel_data, combustion combustion_data, 
 				   injection injection_data,vector<valve> intake_valves, 
-				   vector<valve> exhaust_valves, Scavenge scavenge_data, int extras,
+				   vector<valve> exhaust_valves, Scavenge scavenge_data, geometry geometry_data, int extras,
 				   int species_model, int nvanes, double major_radius, double minor_radius,
 				   double chamber_heigh, int converge_mode,
 				   double converge_var_old, double converge_var_new):
@@ -69,6 +69,7 @@ Component(nnod,ndof,nnod_input,implicit,state_ini,histo,label){
 	this->converge_mode         = converge_mode;
 	this->converge_var_old          = converge_var_old;
 	this->converge_var_new          = converge_var_new;
+	this->geometry_data          = geometry_data;
 
 	// MRCVC
 	this->nvanes        = nvanes;
@@ -110,6 +111,8 @@ Cylinder::Cylinder(Cylinder* c):Component(c->nnod,c->ndof,c->nnod_input,c->impli
 	this->species_model		= c->species_model;
 	this->nvi			    = c->nvi;
 	this->nve				= c->nve;
+
+	this->geometry_data		= c->geometry_data;
 
 	this->converge_mode     = c->converge_mode;
 	this->converge_var_old  = c->converge_var_old;
@@ -183,6 +186,10 @@ void Cylinder::initFortran(int icyl,dataSim &globalData){
 	l2 = this->U_crevice.size();
 	int l3 = this->data_crevice.size();
 	initialize_arrays(&icyl, &(this->prop[0]),&(this->U_crevice[0]), &(this->data_crevice[0]),&l1,&l2,&l3);
+
+	initialize_geometry(&icyl, &(this->geometry_data.Aw[0]), &(this->geometry_data.Al[0]),
+						&(this->geometry_data.V_max), &(this->geometry_data.l_max),
+						&(this->geometry_data.V_step), &(this->geometry_data.l_step));
 	cout<<"ya inicializo arrays fortran"<<endl;
 }
 
@@ -217,7 +224,6 @@ void Cylinder::makeStruct(dataCylinder &data){
 	data.converge_var_old   = this->converge_var_old;
 	data.converge_var_new   = this->converge_var_new;
 
-
 	if(this->Twall.size() == 1)
 		data.nh_temp =  false;
 	else
@@ -251,8 +257,8 @@ void Cylinder::undoStruct(dataCylinder &data){
 	this->factor_ht			= data.factor_ht;
 
 	this->converge_mode     = data.converge_mode;
-	this->converge_var_old      = data.converge_var_old;
-	this->converge_var_new     = data.converge_var_new;
+	this->converge_var_old  = data.converge_var_old;
+	this->converge_var_new  = data.converge_var_new;
 
 	//this->model_ht		= data.model_ht;
 	//this->type_ig			= data.type_ig;

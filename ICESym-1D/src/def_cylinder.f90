@@ -31,6 +31,12 @@ module def_cylinder
      logical(C_BOOL) :: close_cyl
   end type scavenge
 
+  type :: geometry_type
+      real*8 :: V_step,V_max,l_step,l_max
+      real*8, dimension(:,:),pointer :: Aw
+      real*8, dimension(:,:),pointer :: Al
+  end type geometry_type  
+
   type, BIND(C) :: this
      integer(C_INT) :: nnod_input,nvi,nve,nnod,ndof,model_ht, type_ig, nunit, &
           species_model,ntemp,nvanes, converge_mode
@@ -45,6 +51,7 @@ module def_cylinder
      type(injection)::injection_data
      type(combustion)::combustion_data
      type(scavenge)::scavenge_data
+     type(geometry_type)::geometry_data
      type(valve),dimension(:),pointer::intake_valves
      type(valve),dimension(:),pointer::exhaust_valves
      real*8,dimension(:),pointer :: prop, U_crevice, data_crevice
@@ -175,6 +182,38 @@ contains
 
   end subroutine initialize_combustion
 
+  subroutine initialize_geometry(icyl,Aw,Al,V_max,l_max,V_step,l_step) BIND(C)
+    use, intrinsic :: ISO_C_BINDING
+    integer(C_INT) :: icyl
+    real(C_DOUBLE),intent(in) :: V_max,l_max,V_step,l_step
+    real(C_DOUBLE),intent(in) :: Al(0:FLOOR((1+V_max/V_step)*(1+l_max/l_step)-1))
+    real(C_DOUBLE),intent(in) :: Aw(0:FLOOR((1+V_max/V_step)*(1+l_max/l_step)-1))
+    integer :: i,j,i_max,j_max
+
+    cyl(icyl)%geometry_data%V_step = V_step
+    cyl(icyl)%geometry_data%V_max = V_max
+    cyl(icyl)%geometry_data%l_step = l_step
+    cyl(icyl)%geometry_data%l_max = l_max
+
+    i_max = V_max/V_step
+    j_max = l_max/l_step
+
+    allocate(cyl(icyl)%geometry_data%Al(i_max+1,j_max+1))
+    allocate(cyl(icyl)%geometry_data%Aw(i_max+1,j_max+1))
+
+    do i=1,i_max+1
+      do j=1,j_max+1
+      cyl(icyl)%geometry_data%Aw(i,j) = Aw((i-1)*(i_max+1)+j)
+      cyl(icyl)%geometry_data%Al(i,j) = Al((i-1)*(i_max+1)+j)
+      enddo
+    enddo
+   
+    !DEBUG
+    write(*,*) "DEBUG: Matrices con las areas en funcion del volumen: "
+    write(*,*) cyl(icyl)%geometry_data%Aw
+    write(*,*) cyl(icyl)%geometry_data%Al
+ end subroutine initialize_geometry
+
   subroutine initialize_intake_valves(icyl, ival, Nval, type_dat, angle_VO, angle_VC, &
        Dv, Lvmax, Cd, Lv, valve_model, l1, l2, dx_tube, Area_tube, twall_tube, &
        dAreax_tube, tube, theta_0, globalData) BIND(C)
@@ -292,7 +331,7 @@ contains
     real(C_DOUBLE) :: state_ini(0:((myData%nnod+myData%nnod_input)*myData%ndof)-1)
     real(C_DOUBLE) :: mass_C(6*(myData%nnod - myData%nvi - myData%nve ) )
 	real*8,dimension(mydata%ntemp):: t_wall
-	real(C_DOUBLE) :: twall(0:mydata%ntemp-1)
+    real(C_DOUBLE) :: twall(0:mydata%ntemp-1)
 
 
     integer :: i,ival,idof
@@ -1044,6 +1083,51 @@ contains
 
   end subroutine geometry_alternative
 
+  subroutine geometry_multizone(Al,Aw,icyl,V,L)
+    !
+    ! Computes Flame area and wetted wall area (multizone model).
+    ! Needs piston position (L) and burnt gas volume (V) as input, where L is 
+    ! the distance from piston to TDC.
+    ! 
+    ! geometry_multizone is called by: (to be determined)
+    ! geometry_multizone calls the folowing subroutines and fuctions: None
+    !
+
+    real*8, intent(in) :: V,L
+    type(geometry_type) :: geo
+    real*8, intent(out) :: Aw,Al
+    integer :: i,j
+    real*8 :: step,Aw1,Aw2,Aw3,Aw4,Al1,Al2,Al3,Al4,x,y
+
+    ! Get geometry data of the cylinder
+    geo = cyl(icyl)%geometry_data
+
+    ! Initializate output variables to non-sense values to detect errors.
+    Aw = -1
+    Al = -1
+
+    ! Get indexes corresponding to current state of cylinder position and burnt gas volume
+    i=FLOOR(V/geo%V_step)+1
+    j=FLOOR(L/geo%l_step)+1
+
+    x = V/geo%V_step+1
+    y = L/geo%l_step+1
+    
+    ! Perform bilinear interpolation to estimate output variables.
+    step = geo%V_step*geo%l_step
+    Aw1 = (i+1-x)*(j+1-y)*geo%Aw(i,j)
+    Aw2 = (x-i)*(j+1-y)*geo%Aw(i+1,j)
+    Aw3 = (i+1-x)*(y-j)*geo%Aw(i,j+1)
+    Aw4 = (x-i)*(y-j)*geo%Aw(i+1,j+1)
+    Al1 = (i+1-x)*(j+1-y)*geo%Al(i,j)
+    Al2 = (x-i)*(j+1-y)*geo%Al(i+1,j)
+    Al3 = (i+1-x)*(y-j)*geo%Al(i,j+1)
+    Al4 = (x-i)*(y-j)*geo%Al(i+1,j+1)
+
+    Aw = (Aw1+Aw2+Aw3+Aw4)/step
+    Al = (Al1+Al2+Al3+Al4)/step
+  end subroutine
+
   subroutine heat_transfer(myData, globalData, Ucyl, &
        Area, cp, dQ_ht, t_wall)
     !
@@ -1060,7 +1144,7 @@ contains
     type(this), intent(in) :: myData
     type(dataSim), intent(in) :: globalData
     real*8, intent(out) :: dQ_ht
-	real*8,dimension(myData%ntemp) :: t_wall
+	  real*8,dimension(myData%ntemp) :: t_wall
 
     if(globalData%engine_type==0.or.globalData%engine_type==1) then
        call heat_transfer_alternative(myData, globalData, Ucyl, &
@@ -1157,19 +1241,19 @@ contains
     ! Heat transfer coefficient
     C_h = Nu*kappa/Bo
 
-	dQ_hth=0
-	dQ_htr=0
-	C_r_medio=0
+	  dQ_hth=0
+	  dQ_htr=0
+	  C_r_medio=0
 
-	do i = 1,m+2
-		twall = t_wall(i)
+  	do i = 1,m+2
+		  twall = t_wall(i)
 
-		if(myData%type_ig.eq.0) then
+		  if(myData%type_ig.eq.0) then
 			! SI Engine
-			C_r(i) = 4.25d-9*((T**2+twall**2)*(T+twall))
-		elseif(myData%type_ig.eq.1) then
-			! CI Engine
-			C_r(i) = 3.2602d-8*((T**2+twall**2)*(T+twall))
+		    C_r(i) = 4.25d-9*((T**2+twall**2)*(T+twall))
+		  elseif(myData%type_ig.eq.1) then
+			  ! CI Engine
+			  C_r(i) = 3.2602d-8*((T**2+twall**2)*(T+twall))
 		endif
 
 

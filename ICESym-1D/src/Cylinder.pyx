@@ -77,6 +77,14 @@ cdef extern from "cylinder.h":
 		valve (* at)(unsigned int index)
 		valve acc "operator[]"(unsigned int index)
 	valvevec valvevec_factory "std::vector<valve>"(int len)
+
+	ctypedef struct geometry:
+		doublevec Aw
+		doublevec Al
+		double V_max
+		double V_step
+		double l_step
+		double l_max
     	            
     #tipo de dato clase cylinder
 	ctypedef struct c_Cylinder "Cylinder":
@@ -122,6 +130,7 @@ cdef extern from "cylinder.h":
 		fuel fuel_data
 		injection injection_data
 		combustion combustion_data
+		geometry geometry_data
 		valvevec intake_valves
 		valvevec exhaust_valves
 		
@@ -132,7 +141,7 @@ cdef extern from "cylinder.h":
 						 doublevec U_crevice, doublevec data_crevice, doublevec mass_C, int model_ht,
 						 double factor_ht, int scavenge, int scavenge_type, int type_ig, int full_implicit,
 						 fuel fuel_data, combustion combustion_data, injection injection_data,
-						 valvevec intake_valves, valvevec exhaust_valves, Scavenge scavenge_data, 
+						 valvevec intake_valves, valvevec exhaust_valves, Scavenge scavenge_data, geometry geometry_data,
 						 int extras, int species_model, int nvanes, double major_radius, double minor_radius,
 						 double chamber_heigh, int converge_mode, double converge_var_old,
 						  double converge_var_new)
@@ -440,6 +449,28 @@ cdef class Cylinder:
 		cdef int converge_mode = assignOptional(kargs,'converge_mode',0)
 		cdef double converge_var_old = 0.0
 		cdef double converge_var_new = 0.0
+
+		#Condiciones para geometry
+		# Nota: Agregar chequeo de dimensiones
+		cdef geometry geometry_data
+		gargs = kargs['geometry']
+		geometry_data.V_max = assignOptional(gargs,'cyl_volume', -1)
+		geometry_data.V_step = assignOptional(gargs, 'volume_step', -1)
+		geometry_data.l_max = assignOptional(gargs,'stroke', -1)
+		geometry_data.l_step = assignOptional(gargs, 'piston_position_step', -1)
+		Aw = assignOptional(gargs, 'wetted_wall_area', -1)
+		Al = assignOptional(gargs, 'wetted_wall_area', -1)
+
+		if (Aw == -1) and (Al == -1):
+			geometry_data.Aw.push_back(-1)
+			geometry_data.Al.push_back(-1)
+		else:
+			jmax = geometry_data.l_max/geometry_data.l_step
+			imax = geometry_data.V_max/geometry_data.V_step
+			for i in range(0,imax+1):
+				for j in range(0,jmax+1):
+					geometry_data.Aw.push_back(Aw[i,j])
+					geometry_data.Al.push_back(Al[i,j])
 				
 		#instancio la clase
 		self.thisptr = new_Cylinder(nnod, ndof, nnod_input, implicit, state_ini, histo, label, Bore, crank_radius,
@@ -447,7 +478,7 @@ cdef class Cylinder:
 					    delta_ca, twall, prop, U_crevice, data_crevice, mass_C, model_ht,
 					    factor_ht, scavenge, scavenge_type, type_ig, full_implicit,fuel_data,
 					    combustion_data, injection_data, intake_valves, exhaust_valves, 
-					    scavenge_data, extras, species_model, nvanes, major_radius, minor_radius,
+					    scavenge_data, geometry_data, extras, species_model, nvanes, major_radius, minor_radius,
 					    chamber_heigh, converge_mode, converge_var_old, converge_var_new)
 
 	def __dealloc__(self):
