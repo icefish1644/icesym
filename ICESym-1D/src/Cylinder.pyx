@@ -71,20 +71,20 @@ cdef extern from "cylinder.h":
 		int combustion_model
 		int start_comb
 		doublevec xbdot_array
-	            
-	ctypedef struct valvevec "std::vector<valve>":
-		void (* push_back)(valve elem)
-		valve (* at)(unsigned int index)
-		valve acc "operator[]"(unsigned int index)
-	valvevec valvevec_factory "std::vector<valve>"(int len)
 
 	ctypedef struct geometry:
 		doublevec Aw
 		doublevec Al
 		double V_max
 		double V_step
-		double l_step
 		double l_max
+		double l_step
+	            
+	ctypedef struct valvevec "std::vector<valve>":
+		void (* push_back)(valve elem)
+		valve (* at)(unsigned int index)
+		valve acc "operator[]"(unsigned int index)
+	valvevec valvevec_factory "std::vector<valve>"(int len)
     	            
     #tipo de dato clase cylinder
 	ctypedef struct c_Cylinder "Cylinder":
@@ -125,7 +125,6 @@ cdef extern from "cylinder.h":
 		int converge_mode
 		double converge_var_old
 		double converge_var_new
-		
 		Scavenge scavenge_data
 		fuel fuel_data
 		injection injection_data
@@ -174,6 +173,9 @@ cdef class Cylinder:
 
 		onlyAssert(kargs,'state_ini','Cylinder')
 		cdef doublevec state_ini = doublevec_factory(0)
+		cdef int i = 0
+		cdef int j = 0
+
 		for i in range(nnod):
 			for j in range(ndof):
 				state_ini.push_back(kargs['state_ini'][i][j])
@@ -451,26 +453,26 @@ cdef class Cylinder:
 		cdef double converge_var_new = 0.0
 
 		#Condiciones para geometry
-		# Nota: Agregar chequeo de dimensiones
+		# Nota: Agregar chequeo de dimensiones y parar si se elige nzone=2 sin geometry_data
 		cdef geometry geometry_data
-		gargs = kargs['geometry']
-		geometry_data.V_max = assignOptional(gargs,'cyl_volume', -1)
-		geometry_data.V_step = assignOptional(gargs, 'volume_step', -1)
-		geometry_data.l_max = assignOptional(gargs,'stroke', -1)
-		geometry_data.l_step = assignOptional(gargs, 'piston_position_step', -1)
-		Aw = assignOptional(gargs, 'wetted_wall_area', -1)
-		Al = assignOptional(gargs, 'wetted_wall_area', -1)
+		gargs = assignOptional(kargs,'geometry', {})
+		geometry_data.V_max = assignOptional(gargs,'V_max', -1)
+		geometry_data.V_step = assignOptional(gargs, 'V_step', -1)
+		geometry_data.l_max = assignOptional(gargs,'l_max', -1)
+		geometry_data.l_step = assignOptional(gargs, 'l_step', -1)
+		Aw = assignOptional(gargs, 'Aw', -1)
+		Al = assignOptional(gargs, 'Al', -1)
 
 		if (Aw == -1) and (Al == -1):
 			geometry_data.Aw.push_back(-1)
 			geometry_data.Al.push_back(-1)
 		else:
-			jmax = geometry_data.l_max/geometry_data.l_step
-			imax = geometry_data.V_max/geometry_data.V_step
+			jmax = <int>(geometry_data.l_max/geometry_data.l_step)
+			imax = <int>(geometry_data.V_max/geometry_data.V_step)
 			for i in range(0,imax+1):
 				for j in range(0,jmax+1):
-					geometry_data.Aw.push_back(Aw[i,j])
-					geometry_data.Al.push_back(Al[i,j])
+					geometry_data.Aw.push_back(<double>Aw[i,j])
+					geometry_data.Al.push_back(<double>Al[i,j])
 				
 		#instancio la clase
 		self.thisptr = new_Cylinder(nnod, ndof, nnod_input, implicit, state_ini, histo, label, Bore, crank_radius,

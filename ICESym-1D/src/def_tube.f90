@@ -5,9 +5,8 @@ module def_tube
   use, intrinsic :: ISO_C_BINDING
 
   type, BIND(C) :: this
-     integer(C_INT) :: nnod, ndof,nnod_input
      real(C_DOUBLE) :: longitud, dt_max, Text, esp, K
-     integer(C_INT) :: t_left,t_right, type
+     integer(C_INT) :: nnod, ndof,nnod_input,t_left,t_right, type
   end type this
 
 contains

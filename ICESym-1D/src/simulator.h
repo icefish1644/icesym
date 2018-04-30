@@ -37,7 +37,7 @@ class Simulator
 			  int,int,int,int,int,int,int,double,int,double,double,int,int,
 			  double,double,int,int,char*,char*,char*,char*,char*,vector<int>,
 			  vector<Cylinder>,vector<Tube>,vector<Junction>,vector<Tank>,int,
-			  vector<Atmosphere>,int,int,int,double,double,int,double);
+			  vector<Atmosphere>,int,int,int,double,double,int,double,int);
 	void solver();
 	void solveStep();
 	Simulator(){};
@@ -81,6 +81,7 @@ class Simulator
 	int nrpms;
 	int irpm;
 	int has_converged;
+	int nzones;
 	double tol;
 	vector<double> rpms;
 	int iteration;

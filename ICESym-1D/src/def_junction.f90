@@ -6,8 +6,7 @@ module def_junction
   use, intrinsic :: ISO_C_BINDING
   
   type, BIND(C) :: this
-     integer(C_INT) :: nnod, ndof, nnod_input, modelo_junc
-     integer(C_INT) :: type
+     integer(C_INT) :: nnod, ndof, nnod_input, modelo_junc, type
   end type this
 
 contains

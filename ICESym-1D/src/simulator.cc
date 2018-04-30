@@ -45,7 +45,7 @@ Simulator::Simulator(double dt, double tf, int nrpms, vector<double> rpms,
 					 vector<Atmosphere> atmospheres, 
 					 int get_state, int calc_engine_data, 
 					 int use_global_gas_prop, double ga_intake, 
-					 double ga_exhaust, int has_converged, double tol){
+					 double ga_exhaust, int has_converged, double tol, int nzones){
 	this->dt = dt;
 	this->tf = tf;
 	this->nrpms = nrpms;
@@ -88,6 +88,7 @@ Simulator::Simulator(double dt, double tf, int nrpms, vector<double> rpms,
 	this->ga_exhaust = ga_exhaust;
 	this->has_converged = has_converged;
 	this->tol = tol;
+	this->nzones = nzones;
 
 	this->irpm = 0;
 
@@ -787,6 +788,7 @@ void Simulator::makeStruct(dataSim &data){
 	data.ga_exhaust = this->ga_exhaust;
 	data.has_converged = this->has_converged;
 	data.tol = this->tol;
+	data.nzones = this->nzones;
 }
 
 /**

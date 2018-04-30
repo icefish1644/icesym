@@ -6,9 +6,8 @@ module def_tank
   use, intrinsic :: ISO_C_BINDING
   
   type, BIND(C) :: this
-     integer(C_INT) :: nnod, ndof, nnod_input, nunit
-     real(C_DOUBLE) :: Volume, mass, h_film, Area_wall, T_wall
-     integer(C_INT) :: type
+      real(C_DOUBLE) :: Volume, mass, h_film, Area_wall, T_wall
+      integer(C_INT) :: nnod, ndof, nnod_input, nunit, type
   end type this
 
 contains
