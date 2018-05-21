@@ -2263,7 +2263,7 @@ contains
 
    integer :: ispecie,type_ig, nunit, engine_type
    real*8 :: dt,rpm,theta_g,theta,theta_cycle
-   real*8 :: cp,cv,Vol,Area,Vdot,mass_old,mass_new
+   real*8 :: cp,cv,Vol,Area,Vdot,mass_old,mass_new,LHV
    real*8 :: omega,rho_cyl,p_cyl,T_cyl,rho_b,T_b,rho_u,T_u,T_avg
    real*8 :: cp_u,cv_u,R_gas_u,dQ_ht_u,dQ_ht_b,Tdot_u,Tdot_b,cv_b,cp_b,R_gas_b
    real*8 :: xb,xbdot,m_b,mdot_b,m_u,mdot_u,yb,ybdot,V_b,Vdot_b,V_u,Vdot_u,piston_pos,A_fdl,Area_u,Area_b
@@ -2310,7 +2310,7 @@ contains
    call geometry(myData, globalData, Vol, Area, Vdot)
 
    ! Check convergence of the cilinder model
-   call convergence(myData, globalData, p_cyl, mass_in, mass_out, Vdot, icyl)
+   call convergence(myData, globalData, p_cyl, T_cyl, mass_in, mass_out, Vdot, icyl)
   
    ! Computing the fuel mass, air mass and gas residual mass into the cylinder
    call comp_cyl_masses(icyl, cyl(icyl)%nvi, cyl(icyl)%nve, dt, mass_in, &
@@ -2346,14 +2346,27 @@ contains
       ! Compute heat released by combustion, mass fraction and volume fraction of burnt gases
       call heat_released(icyl, type_ig, theta, omega, theta_cycle, &
               dQ_chem, dQ_ht_fuel, xb, xbdot, mass_cyl, save_extras, nunit)
-      
-      ! If we are at the start of combustion, we create a second zone copying state from single zone model
+
+      ! Compute cv,cp and R for unburnt zone
+      call comp_gas_prop(myData,globalData,mass_cyl,T_u,cv_u,cp_u,R_gas_u,icyl)
+
+      ! If we are at the start of combustion, we create a second zone copying state from single zone model to unburnt
+      ! gas zone and estimate initial burnt gas temperature using adiabatic flame temperature model.
       if((modulo(theta-theta_ig,theta_cycle).ge.0).and.(modulo(theta-theta_ig,theta_cycle).lt.(omega*dt))) then
-          write(*,*) "theta, w*dt: ", modulo(theta-theta_ig,theta_cycle), omega*dt
-        rho_u = Ucyl(1)
-        T_u = Ucyl(3)
+          ! the entalpy diference in the zones is the lower heating value of the fuel per unit of total mass.
+          LHV = cyl(icyl)%fuel_data%Q_fuel*mass_cyl(1)/sum(mass_cyl)
+          ! First we estimate T_b using cp for unbunrt gas because we don't now bunrt gas temperature
+          T_b = T_u+LHV/cv_u
+          ! After, we calculate cp for bunrt gas with new temperature, we recalculate T_b using average cp. (iterative)
+          call comp_gas_prop(myData,globalData,mass_cyl,T_b,cv_b,cp_b,R_gas_b,icyl)
+          T_b = T_u+2.0*LHV/(cv_b+cv_u)
+          rho_u = Ucyl(1)
+          T_u = Ucyl(3)
+          write(*,*) "INFO: Estimated initial burnt gas temperature (adiabatic flame temperature) is ", T_b
       end if
-      
+      ! Compute cv,cp and R for burnt zone
+      call comp_gas_prop(myData,globalData,mass_cyl,T_b,cv_b,cp_b,R_gas_b,icyl)
+
       ! Get volume of zones and its time derivatives
       call comp_volume_multizone(Vol,Vdot,V_b,Vdot_b,V_u,Vdot_u,xb,xbdot,rho_u,rho_b,yb,ybdot)
 
@@ -2362,73 +2375,67 @@ contains
       piston_pos = a*(1-dcos(theta))+l-dsqrt(l**2-(a*dcos(theta))**2)
       call geometry_multizone(A_fdl,Area_b,icyl,V_b,piston_pos)
       Area_u = Area-Area_b
-    
-      ! Compute cv,cp and R
-      call comp_gas_prop(myData,globalData,mass_cyl,T_u,cv_u,cp_u,R_gas_u,icyl)
-      call comp_gas_prop(myData,globalData,mass_cyl,T_b,cv_b,cp_b,R_gas_b,icyl)
 
-      ! Compute heat transfer to cylinder wall for both zones
-      call heat_transfer_multizone(myData, globalData, rho_u, P_cyl, T_u, Area_u, &
-                                   cp_u, dQ_ht_u, t_wall)
-      call heat_transfer_multizone(myData, globalData, rho_b, P_cyl, T_b, Area_b, &
-                                   cyl(icyl)%gas_properties%cp, dQ_ht_b, t_wall)
+      ! Compute heat transfer to cylinder wall for both zone.
+      call heat_transfer_multizone(myData, globalData, rho_u, P_cyl, T_u, Area_u, cp_u, dQ_ht_u, t_wall)
+      call heat_transfer_multizone(myData, globalData, rho_b, P_cyl, T_b, Area_b, cp_b, dQ_ht_b, t_wall)
 
       ! Compute new temperature, density and pressure of unburnt zone
       m_u = sum(mass_cyl)*(1-xb)
       mdot_u = sum(mass_cyl)*xbdot
 
-      if (xb.ne.1) then 
-        Tdot_u = -P_cyl*Vdot_u-dQ_ht_u-R_gas_u*T_u*mdot_u
-        ! OBSERVACION: cuando se termina la combustion m_u=0 (division por cero)
-        Tdot_u = Tdot_u/(cv_u*m_u)
-        T_u = T_u+Tdot_u*dt
-        ! OBSERVACION: cuando se termina la combustion V_u=0 (division por cero)
-        rho_u = m_u/V_u
+      if (xb.ne.1) then
+          Tdot_u = -P_cyl*Vdot_u-dQ_ht_u-R_gas_u*T_u*mdot_u
+          ! OBSERVACION: cuando se termina la combustion m_u=0 (division por cero)
+          Tdot_u = Tdot_u/(cv_u*m_u)
+          T_u = T_u+Tdot_u*dt
+          if ((T_u/T_u).ne.1) then
+              write(*,*) "ERROR: NAN in unburnt gas temperature."
+              STOP
+          end if
+          ! OBSERVACION: cuando se termina la combustion V_u=0 (division por cero)
+          rho_u = m_u/V_u
       else
-        ! At the end of combustion we destroy unburnt zone assigning nonsense value
-        ! OBSERVACION: si xb=1, entonces mdot_b=0 y el valor de T_u no afecta al calculo de T_b
-        rho_u = -2
-        T_u = -3
+          ! At the end of combustion we destroy unburnt zone assigning nonsense value
+          ! OBSERVACION: si xb=1, entonces mdot_b=0 y el valor de T_u no afecta al calculo de T_b
+          rho_u = -2
+          T_u = -3
       end if
 
-      ! Compute new temperature and density of burnt zone (pressure is the same as unburnt)
-      ! CONSULTA: ¿Que representa dQ_ht_fuel?
       m_b = sum(mass_cyl)*xb
       mdot_b = sum(mass_cyl)*xbdot
-
       !OBSERVACION: en caso de que xb=0 rho_b y T_b coindicien con el estado del modelo de una zona
       if ((modulo(theta-theta_ig,theta_cycle).ge.(omega*dt))) then
-        Tdot_b = -P_cyl*Vdot_b-dQ_ht_b+dQ_chem-dQ_ht_fuel
-        write(*,*) "cp_u, cv_b, Area_b", cp_u, cv_b, Area_b
-        Tdot_b = Tdot_b+(cp_u*T_u-cv_b*T_b)*mdot_b
-        ! OBSERVACION: cuando se empieza la combustion m_b=0 (division por cero)
-        Tdot_b = Tdot_b/(m_b*cv_b)
-        T_b = T_b+Tdot_b*dt
-        if ((T_b/T_b).ne.1) then
-            STOP
-        end if
-        ! OBSERVACION: cuando se empieza la combustion V_b=0 (division por cero)
-        rho_b = m_b/V_b
+          Tdot_b = -P_cyl*Vdot_b-dQ_ht_b+dQ_chem-dQ_ht_fuel
+          !write(*,*) "cp_b, cv_b, Area_b, dQ_ht_b, dQ_ht_chem, dQ_ht_fuel, mdot_b, mb", &
+          !       cp_b, cv_b, Area_b, dQ_ht_b, dQ_chem, dQ_ht_fuel, mdot_b, m_b
+          Tdot_b = Tdot_b+(cp_u*T_u-cv_b*T_b)*mdot_b
+          ! OBSERVACION: cuando se empieza la combustion m_b=0 (division por cero)
+          Tdot_b = Tdot_b/(m_b*cv_b)
+          T_b = T_b+Tdot_b*dt
+          if ((T_b/T_b).ne.1) then
+              write(*,*) "ERROR: NAN in burnt gas temperature."
+              STOP
+          end if
+          ! OBSERVACION: cuando se empieza la combustion V_b=0 (division por cero)
+          rho_b = m_b/V_b
       end if
 
-      ! Calculate cylinder pressure using average cylinder internal energy (Caton - 2001 - ASME)
-      ! NOTE: we estimate avg cylinder temp from T_u*(1-xb)+T_b*xb (this could be improved) (same for R_gas)
-      rho_cyl = sum(mass_cyl)/Vol
-      T_avg = T_u*(1-xb)+T_b*xb
-      p_cyl = rho_cyl*((1-xb)*R_gas_u+xb*R_gas_b)*T_avg
+      ! Calculate cylinder pressure
+      P_cyl = (m_u*R_gas_u*T_u+m_b*R_gas_b*T_b)/Vol
 
       ! Refresh state vectors
       Ucyl(1) = rho_b
       Ucyl(2) = P_cyl
-      Ucyl(3) = T_b  
+      Ucyl(3) = T_b
       cyl(icyl)%state_multizone(1) = rho_u
       cyl(icyl)%state_multizone(2) = P_cyl
       cyl(icyl)%state_multizone(3) = T_u
 
-
-        write(*,*) "P, rho_b, T_b, rho_u, T_u: ", P_cyl,rho_b,T_b,rho_u,T_u
-                write(*,*) " "
+      !write(*,*) "P, rho_b, T_b, rho_u, T_u:", P_cyl,rho_b,T_b,rho_u,T_u
+      !write(*,*) " "
     else
+
       call heat_released(icyl, type_ig, theta, omega, theta_cycle, &
                          xb, xbdot,dQ_chem, dQ_ht_fuel, mass_cyl, save_extras, nunit)
       ! Computing heat losses
@@ -2857,11 +2864,11 @@ contains
 
   end subroutine fun_cyl_Torque
 
-  subroutine convergence(myData,globalData,p_cyl,mass_in,mass_out,vdot,icyl)
+  subroutine convergence(myData,globalData,p_cyl,T_cyl,mass_in,mass_out,vdot,icyl)
     implicit none
     integer :: converge_mode
     integer, intent(in) :: icyl
-    real*8, intent(in) :: p_cyl, Vdot
+    real*8, intent(in) :: p_cyl, Vdot, T_cyl
     real*8, dimension(cyl(icyl)%nvi), intent(in) :: mass_in
     real*8, dimension(cyl(icyl)%nve), intent(in) :: mass_out
     type(this), intent(inout) :: myData
@@ -2896,6 +2903,9 @@ contains
     !Criterio: presion media efectiva por ciclo
     elseif (converge_mode.eq.5) then
       converge_var_new=converge_var_new+p_cyl*dt*vdot
+      !Criterio: temperatura media por ciclo
+    elseif (converge_mode.eq.6) then
+      converge_var_new=converge_var_new+T_cyl*dt
     end if
     myData%converge_var_new=converge_var_new
     
@@ -2934,7 +2944,7 @@ contains
     real*8, intent(in) :: V,Vdot,xb,xbdot,rho_u,rho_b
     real*8, intent(out) :: V_b,Vdot_b,V_u,Vdot_u,yb,ybdot
     real*8 :: c
-    ! we assume c to be constant in ybdot, it should be aproximatedly equal to 0.25
+    ! we assume c to be constant in ybdot, it should be aproximatedly equal to 0.25 (or equal to 1?)
     c = rho_b/rho_u
     ybdot = xbdot*c*(1-xb*(1-c))**(-2)
     yb = 1/((((1/xb)-1)/c)+1)
@@ -2961,7 +2971,7 @@ contains
       cp = compute_cp(T, 0, cyl(icyl)%gas_properties%R_gas)
       cv = cp - cyl(icyl)%gas_properties%R_gas
       R_gas = cyl(icyl)%gas_properties%R_gas
-   else
+    else
       phi = cyl(icyl)%combustion_data%phi
       if(myData%type_ig.eq.1) then
         phi = cyl(icyl)%combustion_data%phi_ig
@@ -2982,16 +2992,19 @@ contains
            cyl(icyl)%fuel_data%coef_cp)
    
       cv = cp - R_gas
-   end if
-      Tmax = 5000
-      if (T.gt.Tmax) then
-          write(*,*) "WARNING: gas temperature too high for cp correlation."
-            cp = compute_cp(Tmax, 0, cyl(icyl)%gas_properties%R_gas)
-      else
-          cp = compute_cp(T, 0, cyl(icyl)%gas_properties%R_gas)
-      end if
-      cv = cp - cyl(icyl)%gas_properties%R_gas
-      R_gas = cyl(icyl)%gas_properties%R_gas
+    end if
+
+    Tmax = 5000.0
+    if (T.gt.Tmax) then
+        write(*,*) "WARNING: gas temperature too high for cp correlation. Continue?"
+        read(*,*)
+        cp = compute_cp(Tmax, 0, cyl(icyl)%gas_properties%R_gas)
+    else
+        cp = compute_cp(T, 0, cyl(icyl)%gas_properties%R_gas)
+    end if
+
+    cv = cp - cyl(icyl)%gas_properties%R_gas
+    R_gas = cyl(icyl)%gas_properties%R_gas
   end subroutine comp_gas_prop
 
 end module def_cylinder
