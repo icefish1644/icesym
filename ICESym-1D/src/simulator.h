@@ -37,7 +37,7 @@ class Simulator
 			  int,int,int,int,int,int,int,double,int,double,double,int,int,
 			  double,double,int,int,char*,char*,char*,char*,char*,vector<int>,
 			  vector<Cylinder>,vector<Tube>,vector<Junction>,vector<Tank>,int,
-			  vector<Atmosphere>,int,int,int,double,double,int,double,int);
+			  vector<Atmosphere>,int,int,int,double,double,int,double,int,int);
 	void solver();
 	void solveStep();
 	Simulator(){};
@@ -131,6 +131,8 @@ class Simulator
 
 	bool calc_engine_data;			/**< Indicates if PostProcess calculates engine performance characteristics (power, torque, IMEP, BMEP, SFC, etc)*/
 	bool use_global_gas_prop;       /**< Flag to use constant gas properties */
+
+	bool debug;                     /**< Flag to write debug data. (Affects negatively to performance) */
 	
 	vector<Cylinder> cylinders;
 	vector<Tube> tubes;

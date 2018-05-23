@@ -90,6 +90,7 @@ cdef extern from "simulator.h":
 		int has_converged
 		double tol
 		int nzones
+		int debug
 		
 		cylindervec cylinders
 		tubevec tubes
@@ -125,7 +126,7 @@ cdef extern from "simulator.h":
 						    char* filesave_spd,char* folder_name, intvec ig_order, cylindervec cylinders, 
 						    tubevec tubes, junctionvec junctions, tankvec tanks, int natm, atmvec atmospheres, 
 						    int get_state,int calc_engine_data,int use_global_gas_prop, double ga_intake, double ga_exhaust,
-						    int has_converged, double tol, int nzones)
+						    int has_converged, double tol, int nzones, int debug)
 	void del_Simulator "delete" (c_Simulator *sim)
 
 #defino la clase
@@ -284,6 +285,8 @@ cdef class Simulator:
 		cdef double tol = assignOptional(sargs,'tolerance', 0.0)
 
 		cdef int nzones = assignOptional(sargs,'nzones', 1)
+
+		cdef int debug = assignOptional(sargs,'debug', 0)
 			
 		self.thisptr = new_Simulator(dt,tf,nrpms,rpms,Xn,Xn1,ntubes,
 					     ncyl,ntank,njunc,iter_sim1d,nsave,
@@ -297,7 +300,7 @@ cdef class Simulator:
 					     atmospheres, get_state,
 					     calc_engine_data,
 					     use_global_gas_prop,
-					     ga_intake, ga_exhaust, has_converged, tol, nzones)
+					     ga_intake, ga_exhaust, has_converged, tol, nzones, debug)
 		
 	def solver(self):
 		self.thisptr.solver()

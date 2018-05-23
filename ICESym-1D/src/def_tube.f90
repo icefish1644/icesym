@@ -100,7 +100,7 @@ contains
     call fluxTVD(U, Fa, H, dt, tau, ga, myData%nnod, F_TVD)
 
     !DEBUG
-    if (.FALSE.) then
+    if (globalData%debug) then
         if (sum(F_TVD)/sum(F_TVD).ne.1) then
             write(*,*) "ERROR: NAN en variable F_TVD en solve_tube. TIME: ", globaldata%time
             write(*,*) "INFO: Check model file. Look for typos or wrong data type in variable declaration."
@@ -179,7 +179,7 @@ contains
     enddo
 
     !DEBUG
-    if (.FALSE.) then
+    if (globalData%debug) then
         if (mod(globaldata%iter_sim1d,10)==0) then
             pres    = (U(3,:)-0.5*U(2,:)**2/U(1,:))*(prop_g(2)-1)
             temp = pres/U(1,:)/prop_g(5)

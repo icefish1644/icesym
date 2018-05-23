@@ -4,7 +4,7 @@ typedef struct
     rpm_ini, theta_cycle, ga_intake, ga_exhaust, tol;
   int iter_sim1d, viscous_flow, heat_flow, icycle, engine_type,
     ncyl, has_converged, nzones;
-  bool save_extras, use_global_gas_prop;
+  bool save_extras, use_global_gas_prop, debug;
 } dataSim;
 
 typedef struct

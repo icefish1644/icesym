@@ -1306,7 +1306,7 @@ contains
 	  dQ_ht =  dQ_hth + dQ_htr
 
 	  !DEBUG (warning: assumes monocyl engine)
-    if (.FALSE.) then
+    if (globalData%debug) then
         inquire(file="cyl_heat_debug.csv", exist=exist)
         if (exist) then
             open(11, file="cyl_heat_debug.csv", status="old", position="append", action="write")
@@ -1411,7 +1411,7 @@ contains
    dQ_ht =  dQ_hth + dQ_htr
 
    !DEBUG (warning: assumes monocyl engine)
-   if (.FALSE.) then
+   if (globalData%debug) then
        inquire(file="cyl_heat_debug.csv", exist=exist)
        if (exist) then
            open(11, file="cyl_heat_debug.csv", status="old", position="append", action="write")
@@ -2080,54 +2080,7 @@ contains
     call geometry(myData, globalData, Vol, Area, Vdot)
 
     !Chequeo convergencia
-    !Criterio: presion maxima por ciclo
-    if (converge_mode.eq.1) then
-        if (p_cyl.ge.converge_var_new) then
-            converge_var_new = p_cyl
-        end if
-    !Criterio: presion media por ciclo
-    elseif (converge_mode.eq.2) then
-        converge_var_new=converge_var_new+p_cyl*dt
-    !Criterio: masa entrada por ciclo
-    elseif (converge_mode.eq.3) then
-        converge_var_new=converge_var_new+sum(mass_in)*dt
-    !Criterio: masa salida por ciclo
-    elseif (converge_mode.eq.4) then
-        converge_var_new=converge_var_new+sum(mass_out)*dt
-    !Criterio: presion media efectiva por ciclo
-    elseif (converge_mode.eq.5) then
-        converge_var_new=converge_var_new+p_cyl*dt*vdot
-    end if
-    myData%converge_var_new=converge_var_new
-    if (converge_mode.ne.0) then
-        if (globalData%icycle.eq.floor(omega*GlobalData%time/(theta_cycle))) then
-            err = dabs(myData%converge_var_old-converge_var_new)/dabs(converge_var_new)
-            if (globalData%icycle.ne.1) then
-                 write(*,"(A26,I3,A2,F10.9,A13,I2)") "Error relativo en el ciclo", globalData%icycle-1, ": ", &
-                         err, " - Cilindro: ", icyl
-                 if (err.le.globalData%tol) then
-                    write(*,"(A42,I2,A13,I2)") "Se alcanzó la convergencia segun criterio", converge_mode, &
-                            " - Cilindro: ", icyl
-                    globalData%has_converged = globalData%has_converged+1
-                 endif
-                 !DEBUG
-                 if (.FALSE.) then
-                    inquire(file="convergence_debug.csv", exist=exist)
-                    if (exist) then
-                        open(8, file="convergence_debug.csv", status="old", position="append", action="write")
-                    else
-                        open(8, file="convergence_debug.csv", status="new", action="write")
-                    end if
-                    write(8,"(F12.10,A1,I2,A1,I4,A1,F7.1,A1)") err, ";", icyl, ";", globalData%icycle-1, ";", rpm, ";"
-                    close(8)
-                 end if
-                 !END DEBUG
-            end if
-            myData%converge_var_old = converge_var_new
-            myData%converge_var_new = 0.0
-        endif
-    end if
-
+    call convergence(myData, globalData, p_cyl, T_cyl, mass_in, mass_out, Vdot, icyl)
 
     ! Computing heat losses
     call heat_transfer(myData, globalData, Ucyl, Area, &
@@ -2174,18 +2127,19 @@ contains
     Ucyl(3) = T_cyl
 
     !DEBUG
-    if (.True.) then
-        if (mod(globaldata%iter_sim1d,1)==0) then
-            inquire(file="cylinder_debug.csv", exist=exist)
-            if (exist) then
-                open(13, file="cylinder_debug.csv", status="old", position="append", action="write")
-            else
-                open(13, file="cylinder_debug.csv", status="new", action="write")
-            end if
-            write(13,"(F20.3,A1,F20.3,A1,I4,A1,I4,A1,F10.5)") &
-                p_cyl, ";", t_cyl, ";", icyl, ";", globalData%icycle, ";", globalData%time
-            close(13)
-        end if
+    if (globalData%debug) then
+       if (mod(globaldata%iter_sim1d,1)==0) then
+           inquire(file="cylinder_debug.csv", exist=exist)
+           if (exist) then
+               open(13, file="cylinder_debug.csv", status="old", position="append", action="write")
+           else
+               open(13, file="cylinder_debug.csv", status="new", action="write")
+           end if
+           write(13,"(F20.3,A1,F20.3,A1,F20.3,A1,I4,A1,I4,A1,F10.5,A1,F10.5)") &
+               p_cyl, ";", Ucyl(3), ";", cyl(icyl)%state_multizone(3), ";", icyl, &
+                   ";", globalData%icycle, ";", globalData%time, ";", theta
+           close(13)
+       end if
     end if
     !END DEBUG
 
@@ -2382,47 +2336,44 @@ contains
 
       ! Compute new temperature, density and pressure of unburnt zone
       m_u = sum(mass_cyl)*(1-xb)
-      mdot_u = sum(mass_cyl)*xbdot
+      mdot_u = -sum(mass_cyl)*xbdot
 
+      ! Calculate unburnt zone gas properties
       if (xb.ne.1) then
-          Tdot_u = -P_cyl*Vdot_u-dQ_ht_u-R_gas_u*T_u*mdot_u
-          ! OBSERVACION: cuando se termina la combustion m_u=0 (division por cero)
+          Tdot_u = -P_cyl*Vdot_u-dQ_ht_u+R_gas_u*T_u*mdot_u
           Tdot_u = Tdot_u/(cv_u*m_u)
           T_u = T_u+Tdot_u*dt
           if ((T_u/T_u).ne.1) then
               write(*,*) "ERROR: NAN in unburnt gas temperature."
               STOP
           end if
-          ! OBSERVACION: cuando se termina la combustion V_u=0 (division por cero)
           rho_u = m_u/V_u
       else
-          ! At the end of combustion we destroy unburnt zone assigning nonsense value
-          ! OBSERVACION: si xb=1, entonces mdot_b=0 y el valor de T_u no afecta al calculo de T_b
-          rho_u = -2
-          T_u = -3
+          write(*,*) "ERROR: Wrong Wiebe function parameters. Xb should not be equal to 1 at the end of combustion."
+          STOP
       end if
 
+      ! Calculate burnt zone gas properties
       m_b = sum(mass_cyl)*xb
       mdot_b = sum(mass_cyl)*xbdot
       !OBSERVACION: en caso de que xb=0 rho_b y T_b coindicien con el estado del modelo de una zona
       if ((modulo(theta-theta_ig,theta_cycle).ge.(omega*dt))) then
           Tdot_b = -P_cyl*Vdot_b-dQ_ht_b+dQ_chem-dQ_ht_fuel
-          !write(*,*) "cp_b, cv_b, Area_b, dQ_ht_b, dQ_ht_chem, dQ_ht_fuel, mdot_b, mb", &
-          !       cp_b, cv_b, Area_b, dQ_ht_b, dQ_chem, dQ_ht_fuel, mdot_b, m_b
           Tdot_b = Tdot_b+(cp_u*T_u-cv_b*T_b)*mdot_b
-          ! OBSERVACION: cuando se empieza la combustion m_b=0 (division por cero)
           Tdot_b = Tdot_b/(m_b*cv_b)
           T_b = T_b+Tdot_b*dt
           if ((T_b/T_b).ne.1) then
               write(*,*) "ERROR: NAN in burnt gas temperature."
               STOP
           end if
-          ! OBSERVACION: cuando se empieza la combustion V_b=0 (division por cero)
           rho_b = m_b/V_b
       end if
 
       ! Calculate cylinder pressure
       P_cyl = (m_u*R_gas_u*T_u+m_b*R_gas_b*T_b)/Vol
+
+      !rho_b = P_cyl/(R_b*T_b)
+      !rho_u = P_cyl/(R_u*T_u)
 
       ! Refresh state vectors
       Ucyl(1) = rho_b
@@ -2434,6 +2385,26 @@ contains
 
       !write(*,*) "P, rho_b, T_b, rho_u, T_u:", P_cyl,rho_b,T_b,rho_u,T_u
       !write(*,*) " "
+      !DEBUG
+      if (globalData%debug) then
+        if (mod(globaldata%iter_sim1d,1)==0) then
+           inquire(file="cylinder_multizone_debug.csv", exist=exist)
+           if (exist) then
+               open(17, file="cylinder_multizone_debug.csv", status="old", position="append", action="write")
+           else
+               open(17, file="cylinder_multizone_debug.csv", status="new", action="write")
+           end if
+           write(17,"(F20.3,A1,F20.3,A1,F20.3,A1,F20.3,A1,F20.3,A1,F20.3,A1,F20.3,A1,F20.3,A1,F20.3,A1,&
+                   F20.3,A1,F20.3,A1,F20.3,A1,F20.3,A1,I4,A1,I4,A1,F10.5,A1,F10.5)") &
+                   xb, ";", xbdot, ";", m_b, ";", mdot_b, ";", V_b*1e6, ";", Vdot_b*1e6*60/(omega*2*pi), &
+                   ";", m_u,";", mdot_u, ";", V_u*1e6, ";", Vdot_u*1e6*60/(omega*2*pi), ";", Vol*1e6, ";",&
+                   Vdot*1e6*60/(omega*2*pi), ";", rho_b/rho_u, ";", icyl, ";", &
+                   globalData%icycle, ";", globalData%time, ";", theta
+
+           close(17)
+            end if
+      end if
+      !END DEBUG
     else
 
       call heat_released(icyl, type_ig, theta, omega, theta_cycle, &
@@ -2467,7 +2438,7 @@ contains
     end if
 
    !DEBUG
-   if (.True.) then
+   if (globalData%debug) then
        if (mod(globaldata%iter_sim1d,1)==0) then
            inquire(file="cylinder_debug.csv", exist=exist)
            if (exist) then
@@ -2475,8 +2446,9 @@ contains
            else
                open(13, file="cylinder_debug.csv", status="new", action="write")
            end if
-           write(13,"(F20.3,A1,F20.3,A1,F20.3,A1,I4,A1,I4,A1,F10.5)") &
-               p_cyl, ";", Ucyl(3), ";", cyl(icyl)%state_multizone(3), ";", icyl, ";", globalData%icycle, ";", globalData%time
+           write(13,"(F20.3,A1,F20.3,A1,F20.3,A1,I4,A1,I4,A1,F10.5,A1,F10.5)") &
+               p_cyl, ";", Ucyl(3), ";", cyl(icyl)%state_multizone(3), ";", icyl, &
+                   ";", globalData%icycle, ";", globalData%time, ";", theta
            close(13)
        end if
    end if
@@ -2921,7 +2893,7 @@ contains
                 globalData%has_converged = globalData%has_converged+1
              endif
              !DEBUG
-             if (.FALSE.) then
+             if (globalData%debug) then
                 inquire(file="convergence_debug.csv", exist=exist)
                 if (exist) then
                     open(8, file="convergence_debug.csv", status="old", position="append", action="write")
@@ -2946,6 +2918,8 @@ contains
     real*8 :: c
     ! we assume c to be constant in ybdot, it should be aproximatedly equal to 0.25 (or equal to 1?)
     c = rho_b/rho_u
+    !c = 0.25
+
     ybdot = xbdot*c*(1-xb*(1-c))**(-2)
     yb = 1/((((1/xb)-1)/c)+1)
 
@@ -2954,6 +2928,11 @@ contains
 
     Vdot_b = V*ybdot+yb*Vdot
     Vdot_u = Vdot-Vdot_b
+
+    if ((Vdot_b.lt.0).and.(Vdot_u.gt.0)) then
+        write(*,*) "WARNING: Multizone volume variation is bad. dV_u/dt: ", Vdot_u, " , dV_b/dt: ", Vdot_b
+    end if
+
   end subroutine comp_volume_multizone
 
   subroutine comp_gas_prop(myData,globalData,mass_cyl,T,cv,cp,R_gas,icyl)

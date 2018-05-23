@@ -6,7 +6,7 @@ module def_simulator
           theta, omega, rpm, rpm_ini, theta_cycle, ga_intake, ga_exhaust, tol
      integer(C_INT) :: iter_sim1d, viscous_flow, heat_flow, icycle, &
           engine_type, ncyl, has_converged, nzones
-     logical(C_BOOL) :: save_extras, use_global_gas_prop
+     logical(C_BOOL) :: save_extras, use_global_gas_prop, debug
   end type dataSim
   
 end module def_simulator
