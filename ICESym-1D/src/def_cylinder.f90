@@ -2309,12 +2309,17 @@ contains
       if((modulo(theta-theta_ig,theta_cycle).ge.0).and.(modulo(theta-theta_ig,theta_cycle).lt.(omega*dt))) then
           ! the entalpy diference in the zones is the lower heating value of the fuel per unit of total mass.
           LHV = cyl(icyl)%fuel_data%Q_fuel*mass_cyl(1)/sum(mass_cyl)
-          ! First we estimate T_b using cp for unbunrt gas because we don't now bunrt gas temperature
+          ! First we estimate T_b using cp for unbunrt gas because we don't know bunrt gas temperature
           T_b = T_u+LHV/cv_u
+          write(*,*) "INFO: First estimated initial burnt gas temperature (adiabatic flame temperature) is ", T_b
           ! After, we calculate cp for bunrt gas with new temperature, we recalculate T_b using average cp. (iterative)
           call comp_gas_prop(myData,globalData,mass_cyl,T_b,cv_b,cp_b,R_gas_b,icyl)
           T_b = T_u+2.0*LHV/(cv_b+cv_u)
-          rho_u = Ucyl(1)
+          write(*,*) "INFO: Second estimated initial burnt gas temperature (adiabatic flame temperature) is ", T_b
+          call comp_gas_prop(myData,globalData,mass_cyl,T_b,cv_b,cp_b,R_gas_b,icyl)
+          T_b = (T_u+2.0*LHV/(cp_b+cp_u)+T_b)/2.0
+          write(*,*) "INFO: Third estimated initial burnt gas temperature (adiabatic flame temperature) is ", T_b
+          rho_u = Ucyl(1)/4
           T_u = Ucyl(3)
           write(*,*) "INFO: Estimated initial burnt gas temperature (adiabatic flame temperature) is ", T_b
       end if
@@ -2340,8 +2345,7 @@ contains
 
       ! Calculate unburnt zone gas properties
       if (xb.ne.1) then
-          Tdot_u = -P_cyl*Vdot_u-dQ_ht_u+R_gas_u*T_u*mdot_u
-          Tdot_u = Tdot_u/(cv_u*m_u)
+          Tdot_u = (-P_cyl*Vdot_u-dQ_ht_u+R_gas_u*T_u*mdot_u)/(cv_u*m_u)
           T_u = T_u+Tdot_u*dt
           if ((T_u/T_u).ne.1) then
               write(*,*) "ERROR: NAN in unburnt gas temperature."
@@ -2372,8 +2376,8 @@ contains
       ! Calculate cylinder pressure
       P_cyl = (m_u*R_gas_u*T_u+m_b*R_gas_b*T_b)/Vol
 
-      !rho_b = P_cyl/(R_b*T_b)
-      !rho_u = P_cyl/(R_u*T_u)
+      !rho_b = P_cyl/(R_gas_b*T_b)
+      !rho_u = P_cyl/(R_gas_u*T_u)
 
       ! Refresh state vectors
       Ucyl(1) = rho_b
@@ -2915,13 +2919,10 @@ contains
     implicit none
     real*8, intent(in) :: V,Vdot,xb,xbdot,rho_u,rho_b
     real*8, intent(out) :: V_b,Vdot_b,V_u,Vdot_u,yb,ybdot
-    real*8 :: c
-    ! we assume c to be constant in ybdot, it should be aproximatedly equal to 0.25 (or equal to 1?)
-    c = rho_b/rho_u
-    !c = 0.25
 
-    ybdot = xbdot*c*(1-xb*(1-c))**(-2)
-    yb = 1/((((1/xb)-1)/c)+1)
+    ! Simplification: we assume that rho_u/rho_b=4
+    yb = 4.0/(3.0+1.0/xb)
+    ybdot = xbdot*(yb-0.75*yb**2)/xb
 
     V_b = yb*V
     V_u = V-v_b
