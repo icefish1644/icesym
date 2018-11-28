@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
 cd ./ICESym-1D/src/
 rm simCythonCPP.cpp
-CFLAGS="-L/usr/local/lib/gcc/7﻿-pthread -static-libgcc -mmacosx-version-min=10.1 -DNDEBUG -g -fwrapv -O2 -Wall -fno-strict-aliasing -Wdate-time -D_FORTIFY_SOURCE=2 -g -fstack-protector-strong -Wformat -Werror=format-security -fPIC" CC="gcc-7" CXX="g++-7" make -B install
+sudo CFLAGS="-L/usr/local/Cellar/gcc/8.2.0/lib/gcc/8/gcc/x86_64-apple-darwin18.0.0/8.2.0/../../../ -lgfortran -pthread -g -O2 -Wall" CC="clang" CXX="clang" F90="gfortran" make -B install
 echo "Done building"

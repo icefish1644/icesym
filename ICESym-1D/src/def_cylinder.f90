@@ -191,6 +191,7 @@ contains
     real(C_DOUBLE),intent(in) :: V_max,l_max
     real(C_DOUBLE),intent(in) :: Al(0:(1+V_num)*(1+l_num)-1)
     real(C_DOUBLE),intent(in) :: Aw(0:(1+V_num)*(1+l_num)-1)
+    type(dataSim) :: globalData
     integer :: i,j
     logical :: exist
 
@@ -202,13 +203,20 @@ contains
     allocate(cyl(icyl)%geometry_data%Al(V_num+1,l_num+1))
     allocate(cyl(icyl)%geometry_data%Aw(V_num+1,l_num+1))
 
+
     do i=1,V_num+1
       do j=1,l_num+1
       cyl(icyl)%geometry_data%Aw(i,j) = Aw((i-1)*(l_num+1)+j-1)
       cyl(icyl)%geometry_data%Al(i,j) = Al((i-1)*(l_num+1)+j-1)
       enddo
-      write(*,*) " Aw: ", cyl(icyl)%geometry_data%Aw(i,:)
-      write(*,*) " Al: ", cyl(icyl)%geometry_data%Al(i,:)
+
+      !DEBUG
+      if (globalData%debug.gt.0) then
+        write(*,*) " Aw: ", cyl(icyl)%geometry_data%Aw(i,:)
+        write(*,*) " Al: ", cyl(icyl)%geometry_data%Al(i,:)
+      end if
+      !DEBUG
+
     enddo
 
     ! Check that Fortran received correct geometry data and formatted correctly
@@ -225,14 +233,16 @@ contains
           write(*,*) "NAN in Aw in geometry data in C. Probably due to wrong l_num or V_num or bad geometry value in data."
     end if
 
-          !DEBUG
-      inquire(file="cylinder_debug.csv", exist=exist)
-           if (exist) then
-               open(13, file="cylinder_debug.csv", status="old", position="append", action="write")
-           else
-               open(13, file="cylinder_debug.csv", status="new", action="write")
-           end if
-      !DEBUG
+    !DEBUG
+    if (globalData%debug.gt.0) then
+        inquire(file="cylinder_debug.csv", exist=exist)
+            if (exist) then
+                open(13, file="cylinder_debug.csv", status="old", position="append", action="write")
+            else
+                open(13, file="cylinder_debug.csv", status="new", action="write")
+            end if
+    end if
+    !DEBUG
 
   end subroutine initialize_geometry
 
