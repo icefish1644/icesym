@@ -115,9 +115,9 @@ typedef struct
 	vector<double> Aw;			/**< Area of cylinder wall that is in touch with burnt gases (Aw(V,l)) */
 	vector<double> Al;			/**< Laminar flame area (Af(V,l)) */
 	double V_max;				/**< Volume inside cylinder when piston is in BDC*/
-	double V_step;				/**< Volume diference or step in data of Aw(V,l) and Af(V,l) */
+	int V_num;				/**< Volume diference or step in data of Aw(V,l) and Af(V,l) */
 	double l_max;				/**< Stroke */
-	double l_step;				/**< Piston position step in data of Aw(V,l) and Af(V,l) */
+	int l_num;				/**< Piston position step in data of Aw(V,l) and Af(V,l) */
 } geometry; 
 
 /**
@@ -220,7 +220,7 @@ extern "C"{
 								  double* twall_tube, double* dAreax_tube, int* tube, double* theta_0,
 								  dataSim* globalData);
 	void initialize_geometry(int* icyl,double* Aw, double* Al, double* V_max, double* l_max,
-							 double* V_step, double* l_step);
+							 int* V_num, int* l_num);
 	void open_unit(int* nu, char* file, int* nfsize);
 	void close_unit(int* nu);
 }

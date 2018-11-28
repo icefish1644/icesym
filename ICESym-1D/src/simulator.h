@@ -82,6 +82,7 @@ class Simulator
 	int irpm;
 	int has_converged;
 	int nzones;
+	int debug;                     /**< Flag to write debug data. (Affects negatively to performance) */
 	double tol;
 	vector<double> rpms;
 	int iteration;
@@ -132,8 +133,6 @@ class Simulator
 	bool calc_engine_data;			/**< Indicates if PostProcess calculates engine performance characteristics (power, torque, IMEP, BMEP, SFC, etc)*/
 	bool use_global_gas_prop;       /**< Flag to use constant gas properties */
 
-	bool debug;                     /**< Flag to write debug data. (Affects negatively to performance) */
-	
 	vector<Cylinder> cylinders;
 	vector<Tube> tubes;
 	vector<Junction> junctions;

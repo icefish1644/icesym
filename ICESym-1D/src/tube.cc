@@ -27,9 +27,8 @@ Tube::Tube(unsigned int nnod, unsigned int ndof, unsigned int nnod_input,
 		   int implicit, vector<double> state_ini, vector<int> histo,
 		   char* label, double longitud, vector<double> xnod,
 		   vector<double> Area, vector<double> twall, vector<double> curvature,
-		   vector<double> dAreax,
-			 double Text, double esp, double K, vector<double> Ts,
-			 char* tleft, unsigned int nleft,
+		   vector<double> dAreax, double Text, double esp, double K, vector<double> Ts,
+		   char* tleft, unsigned int nleft,
 		   char* tright, unsigned int nright, int type):
 Component(nnod,ndof,nnod_input,implicit,state_ini,histo,label){
 	this->longitud  = longitud;

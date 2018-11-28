@@ -5,8 +5,8 @@ module def_simulator
      real(C_DOUBLE) :: time, dt, dtheta_rpm, Courant, ga, R_gas, &
           theta, omega, rpm, rpm_ini, theta_cycle, ga_intake, ga_exhaust, tol
      integer(C_INT) :: iter_sim1d, viscous_flow, heat_flow, icycle, &
-          engine_type, ncyl, has_converged, nzones
-     logical(C_BOOL) :: save_extras, use_global_gas_prop, debug
+          engine_type, ncyl, has_converged, nzones, debug
+     logical(C_BOOL) :: save_extras, use_global_gas_prop
   end type dataSim
   
 end module def_simulator

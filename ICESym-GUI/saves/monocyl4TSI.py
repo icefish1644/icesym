@@ -10,13 +10,11 @@
 
 Simulator0 = dict()
 Simulator0['dtheta_rpm'] = 1.0
-Simulator0['filein_state'] = ''
 Simulator0['calc_engine_data'] = 1
 Simulator0['Courant'] = 0.8
 Simulator0['heat_flow'] = 1.0
 Simulator0['R_gas'] = 287.0
 Simulator0['rpms'] = [1000, 2000, 3000, 4000, 5000, 6000]
-Simulator0['filesave_spd'] = ''
 Simulator0['filesave_state'] = 'monocyl4TSI'
 Simulator0['ncycles'] = 5
 Simulator0['folder_name'] = 'monocyl4TSI'
@@ -28,6 +26,7 @@ Simulator0['get_state'] = 2
 Simulator0['nappend'] = 5.0
 Simulator0['engine_type'] = 0
 Simulator0['nstroke'] = 4
+Simulator0['nzones'] = 1
 
 Simulator = Simulator0
 
@@ -83,7 +82,7 @@ Cylinders0['fuel'] = fuel0
 #--------- Inicializacion de combustion
 
 combustion0 = dict()
-combustion0['phi'] = 1.0
+combustion0['phi'] = 0.265
 combustion0['a_wiebe'] = 5.0
 combustion0['dtheta_comb'] = 1.0471975512
 combustion0['combustion_model'] = 1

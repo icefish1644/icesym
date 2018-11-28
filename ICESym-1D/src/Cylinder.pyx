@@ -76,9 +76,9 @@ cdef extern from "cylinder.h":
 		doublevec Aw
 		doublevec Al
 		double V_max
-		double V_step
+		int V_num
 		double l_max
-		double l_step
+		int l_num
 	            
 	ctypedef struct valvevec "std::vector<valve>":
 		void (* push_back)(valve elem)
@@ -182,7 +182,6 @@ cdef class Cylinder:
 		
 		onlyAssert(kargs,'histo','Cylinder')
 		cdef intvec histo = intvec_factory(0)
-		print kargs['histo'], range(nnod)
 		for i in range(len(kargs['histo'])):
 			if(kargs['histo'][i] in range(nnod)):
 				histo.push_back(kargs['histo'][i])
@@ -456,24 +455,28 @@ cdef class Cylinder:
 		# Nota: Agregar chequeo de dimensiones y parar si se elige nzone=2 sin geometry_data
 		cdef geometry geometry_data
 		gargs = assignOptional(kargs,'geometry', {})
-		geometry_data.V_max = assignOptional(gargs,'V_max', -1)
-		geometry_data.V_step = assignOptional(gargs, 'V_step', -1)
-		geometry_data.l_max = assignOptional(gargs,'l_max', -1)
-		geometry_data.l_step = assignOptional(gargs, 'l_step', -1)
-		Aw = assignOptional(gargs, 'Aw', -1)
-		Al = assignOptional(gargs, 'Al', -1)
+		geometry_data.V_max = assignOptional(gargs,'V_max', -1.0)
+		geometry_data.V_num = assignOptional(gargs, 'V_num', 1)
+		geometry_data.l_max = assignOptional(gargs,'l_max', -1.0)
+		geometry_data.l_num = assignOptional(gargs, 'l_num', 1)
+		geometry_data.l_num = geometry_data.l_num-1
+		Aw = assignOptional(gargs, 'Aw', -1.0)
+		Al = assignOptional(gargs, 'Al', -1.0)
 
-		if (Aw == -1) and (Al == -1):
-			geometry_data.Aw.push_back(-1)
-			geometry_data.Al.push_back(-1)
+		if Aw == -1.0:
+			geometry_data.Aw.push_back(-1.0)
 		else:
-			jmax = <int>(geometry_data.l_max/geometry_data.l_step)
-			imax = <int>(geometry_data.V_max/geometry_data.V_step)
-			for i in range(0,imax+1):
-				for j in range(0,jmax+1):
-					geometry_data.Aw.push_back(<double>Aw[i,j])
-					geometry_data.Al.push_back(<double>Al[i,j])
-				
+			for n in range(0,geometry_data.V_num+1):
+				for m in range(0,geometry_data.l_num+1):
+					geometry_data.Aw.push_back(<double>Aw[n,m])
+
+		if (Al == -1.0):
+			geometry_data.Al.push_back(-1.0)
+		else:
+			for n in range(0,geometry_data.V_num+1):
+				for m in range(0,geometry_data.l_num):
+					geometry_data.Al.push_back(<double>Al[n,m])
+
 		#instancio la clase
 		self.thisptr = new_Cylinder(nnod, ndof, nnod_input, implicit, state_ini, histo, label, Bore, crank_radius,
 					    Vol_clearance, rod_length, head_chamber_area, piston_area, theta_0,

@@ -170,7 +170,7 @@ void Cylinder::initFortran(int icyl,dataSim &globalData){
 		l1 = this->exhaust_valves[ival].Cd.size();
 		l2 = this->exhaust_valves[ival].Lv.size();
 		//cout<<"sizes: "<<l1<<", "<<l2<<endl;
-		cout<<this->exhaust_valves[ival].Cd[l1-1]<<endl;
+		//cout<<this->exhaust_valves[ival].Cd[l1-1]<<endl;
 		int ivalMod = ival+1;
 		initialize_exhaust_valves(&icyl, &ivalMod, &(this->exhaust_valves[ival].Nval), &(this->exhaust_valves[ival].type_dat), 
 								  &(this->exhaust_valves[ival].angle_V0), &(this->exhaust_valves[ival].angle_VC), 
@@ -189,7 +189,7 @@ void Cylinder::initFortran(int icyl,dataSim &globalData){
 
 	initialize_geometry(&icyl, &(this->geometry_data.Aw[0]), &(this->geometry_data.Al[0]),
 						&(this->geometry_data.V_max), &(this->geometry_data.l_max),
-						&(this->geometry_data.V_step), &(this->geometry_data.l_step));
+						&(this->geometry_data.V_num), &(this->geometry_data.l_num));
 	cout<<"ya inicializo arrays fortran"<<endl;
 }
 

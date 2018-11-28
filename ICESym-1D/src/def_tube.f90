@@ -51,7 +51,6 @@ contains
     real*8, dimension(3) :: Upipe, Uthroat, Urv, Upv, RHS
     real*8, dimension(3,2) :: Upv2
     real*8, dimension(mydata%nnod) :: temp,pres,rho
-
     integer :: scheme, solved_case
 
     scheme = 1
@@ -100,11 +99,11 @@ contains
     call fluxTVD(U, Fa, H, dt, tau, ga, myData%nnod, F_TVD)
 
     !DEBUG
-    if (globalData%debug) then
+    if (globalData%debug.gt.1) then
         if (sum(F_TVD)/sum(F_TVD).ne.1) then
             write(*,*) "ERROR: NAN en variable F_TVD en solve_tube. TIME: ", globaldata%time
             write(*,*) "INFO: Check model file. Look for typos or wrong data type in variable declaration."
-            read(*,*)
+            !read(*,*)
         end if
     end if
     !DEBUG
@@ -179,8 +178,26 @@ contains
     enddo
 
     !DEBUG
-    if (globalData%debug) then
-        if (mod(globaldata%iter_sim1d,10)==0) then
+    if (globalData%debug.gt.3) then
+    if (mod(globaldata%iter_sim1d,10)==0) then
+        if (itube.eq.0) then
+            pres    = (U(3,:)-0.5*U(2,:)**2/U(1,:))*(prop_g(2)-1)
+            temp = pres/U(1,:)/prop_g(5)
+            inquire(file="tube0_debug.csv", exist=exist)
+            if (exist) then
+                open(9, file="tube0_debug.csv", status="old", position="append", action="write")
+            else
+                open(9, file="tube0_debug.csv", status="new", action="write")
+            end if
+            write(9,&
+                    "(F20.3,A1,F20.3,A1,F20.3,A1,F20.3,A1,F20.3,A1,F20.3,A1,F20.3,A1,&
+                            F20.3,A1,F20.3,A1,I2,A1,F10.5,A1,I4,A1,F10.7)") &
+                    H(3,1),";", H(3,floor(mydata%nnod*0.5)), ";", H(3,mydata%nnod), ";", &
+                    pres(1), ";", pres(floor(mydata%nnod*0.5)), ";", pres(mydata%nnod), ";", &
+                    temp(1), ";", temp(floor(mydata%nnod*0.5)), ";", temp(mydata%nnod), ";", &
+                    itube, ";", globaldata%time, ";", globaldata%icycle, ";", globalData%theta
+            close(9)
+        else
             pres    = (U(3,:)-0.5*U(2,:)**2/U(1,:))*(prop_g(2)-1)
             temp = pres/U(1,:)/prop_g(5)
             inquire(file="tube_debug.csv", exist=exist)
@@ -189,14 +206,16 @@ contains
             else
                 open(8, file="tube_debug.csv", status="new", action="write")
             end if
-            write(8,"(F20.3,A1,F20.3,A1,F20.3,A1, F20.3,A1,F20.3,A1,F20.3,A1, &
-                F20.3,A1,F20.3,A1,F20.3,A1, I2,A1,F10.5,A1,I4)") &
-                H(3,1),";", H(3,floor(mydata%nnod*0.5)), ";", H(3,mydata%nnod), ";", &
-                pres(1), ";", pres(floor(mydata%nnod*0.5)), ";", pres(mydata%nnod), ";", &
-                temp(1), ";", temp(floor(mydata%nnod*0.5)), ";", temp(mydata%nnod), ";", &
-                itube, ";", globaldata%time, ";", globaldata%icycle
+            write(8,&
+                    "(F20.3,A1,F20.3,A1,F20.3,A1,F20.3,A1,F20.3,A1,F20.3,A1,F20.3,A1,&
+                            F20.3,A1,F20.3,A1,I2,A1,F10.5,A1,I4,A1,F10.7)") &
+                    H(3,1),";", H(3,floor(mydata%nnod*0.5)), ";", H(3,mydata%nnod), ";", &
+                    pres(1), ";", pres(floor(mydata%nnod*0.5)), ";", pres(mydata%nnod), ";", &
+                    temp(1), ";", temp(floor(mydata%nnod*0.5)), ";", temp(mydata%nnod), ";", &
+                    itube, ";", globaldata%time, ";", globaldata%icycle, ";", theta
             close(8)
         end if
+    end if
     end if
 
     !END DEBUG
@@ -289,7 +308,7 @@ contains
 
   end subroutine fluxa
 
-  subroutine source(U, dareax, area, prop_g, Twall, nnod, h, scheme, Text, esp, K, Ts)
+  subroutine source(U, dareax, area, prop_g, Twall, nnod, H, scheme, Text, esp, K, Ts)
     !
     !   Computes the source term for
     !      variable section,
@@ -320,15 +339,14 @@ contains
     real*8, dimension(nnod) :: ggg,alfa,qptot,alfa_int,kappa
     real*8, dimension(nnod) :: R_int,R_ext,h_int,h_ext,Ra
 
-    viscous_flow = prop_g(3)
-    heat_flow    = prop_g(4)
+    viscous_flow = FLOOR(prop_g(3))
+    heat_flow    = FLOOR(prop_g(4))
     ga           = prop_g(2)
     R_gas        = prop_g(5)
 
     g1 = ga-1.
     cp = R_gas*ga/g1
 
-    h = 0.0d0
     qptot = 0.0d0
     if(scheme.eq.0) then
        pres    = (U(3,:)-0.5*U(2,:)**2/U(1,:))*g1/area
@@ -397,7 +415,6 @@ contains
       !  heat transfer source
       h(3,:) = h(3,:)+qptot
     endif
-
   end subroutine source
 
   subroutine fluxTVD(U, fa, c, dt, r, ga, nnod, f_tvd)
@@ -942,8 +959,8 @@ contains
                 end do
 
                 !if(any(isnan(cyl(k)%exhaust_valves(i)%state_ref(j,:)))) then
-                tmp = sum(cyl(k)%exhaust_valves(i)%state_ref(j,:))
-                if ((tmp/tmp).ne.1) then
+                !tmp = sum(cyl(k)%exhaust_valves(i)%state_ref(j,:))
+                if ((sum(cyl(k)%exhaust_valves(i)%state_ref(j,:))/sum(cyl(k)%exhaust_valves(i)%state_ref(j,:))).ne.1) then
                    write(*,*) 'CYL: ', k, ' - U: ', U, ' - dx: ', &
                         dx_S/hnod(1), dx_R/hnod(1)
                    write(*,*) Uc

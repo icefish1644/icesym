@@ -285,9 +285,8 @@ cdef class Simulator:
 		cdef double tol = assignOptional(sargs,'tolerance', 0.0)
 
 		cdef int nzones = assignOptional(sargs,'nzones', 1)
-
 		cdef int debug = assignOptional(sargs,'debug', 0)
-			
+
 		self.thisptr = new_Simulator(dt,tf,nrpms,rpms,Xn,Xn1,ntubes,
 					     ncyl,ntank,njunc,iter_sim1d,nsave,
 					     nappend,dtheta_rpm,inicia,Courant,

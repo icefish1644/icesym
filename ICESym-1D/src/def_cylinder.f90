@@ -32,7 +32,8 @@ module def_cylinder
   end type scavenge
 
   type :: geometry_type
-      real*8 :: V_step,V_max,l_step,l_max
+      real*8 :: V_max,l_max
+      integer :: l_num,V_num
       real*8, dimension(:,:),pointer :: Aw
       real*8, dimension(:,:),pointer :: Al
   end type geometry_type  
@@ -183,31 +184,56 @@ contains
 
   end subroutine initialize_combustion
 
-  subroutine initialize_geometry(icyl,Aw,Al,V_max,l_max,V_step,l_step) BIND(C)
+  subroutine initialize_geometry(icyl,Aw,Al,V_max,l_max,V_num,l_num) BIND(C)
     use, intrinsic :: ISO_C_BINDING
     integer(C_INT) :: icyl
-    real(C_DOUBLE),intent(in) :: V_max,l_max,V_step,l_step
-    real(C_DOUBLE),intent(in) :: Al(0:FLOOR((1+V_max/V_step)*(1+l_max/l_step)-1))
-    real(C_DOUBLE),intent(in) :: Aw(0:FLOOR((1+V_max/V_step)*(1+l_max/l_step)-1))
-    integer :: i,j,i_max,j_max
+    integer(C_INT),intent(in) :: l_num,V_num
+    real(C_DOUBLE),intent(in) :: V_max,l_max
+    real(C_DOUBLE),intent(in) :: Al(0:(1+V_num)*(1+l_num)-1)
+    real(C_DOUBLE),intent(in) :: Aw(0:(1+V_num)*(1+l_num)-1)
+    integer :: i,j
+    logical :: exist
 
-    cyl(icyl)%geometry_data%V_step = V_step
+    cyl(icyl)%geometry_data%V_num = V_num
     cyl(icyl)%geometry_data%V_max = V_max
-    cyl(icyl)%geometry_data%l_step = l_step
+    cyl(icyl)%geometry_data%l_num = l_num
     cyl(icyl)%geometry_data%l_max = l_max
 
-    i_max = V_max/V_step
-    j_max = l_max/l_step
+    allocate(cyl(icyl)%geometry_data%Al(V_num+1,l_num+1))
+    allocate(cyl(icyl)%geometry_data%Aw(V_num+1,l_num+1))
 
-    allocate(cyl(icyl)%geometry_data%Al(i_max+1,j_max+1))
-    allocate(cyl(icyl)%geometry_data%Aw(i_max+1,j_max+1))
-
-    do i=1,i_max+1
-      do j=1,j_max+1
-      cyl(icyl)%geometry_data%Aw(i,j) = Aw((i-1)*(j_max+1)+j-1)
-      cyl(icyl)%geometry_data%Al(i,j) = Al((i-1)*(j_max+1)+j-1)
+    do i=1,V_num+1
+      do j=1,l_num+1
+      cyl(icyl)%geometry_data%Aw(i,j) = Aw((i-1)*(l_num+1)+j-1)
+      cyl(icyl)%geometry_data%Al(i,j) = Al((i-1)*(l_num+1)+j-1)
       enddo
+      write(*,*) " Aw: ", cyl(icyl)%geometry_data%Aw(i,:)
+      write(*,*) " Al: ", cyl(icyl)%geometry_data%Al(i,:)
     enddo
+
+    ! Check that Fortran received correct geometry data and formatted correctly
+    if (sum(cyl(icyl)%geometry_data%Aw)/sum(cyl(icyl)%geometry_data%Aw).ne.1) then
+          write(*,*) "NAN in Aw in geometry data in Fortran. Probably due to wrong l_num or V_num."
+    end if
+    if (sum(cyl(icyl)%geometry_data%Al)/sum(cyl(icyl)%geometry_data%Al).ne.1) then
+          write(*,*) "NAN in Al in geometry data in Fortran. Probably due to wrong l_num or V_num."
+    end if
+    if (sum(Aw)/sum(Aw).ne.1) then
+          write(*,*) "NAN in Aw in geometry data in C. Probably due to wrong l_num or V_num or bad geometry value in data."
+    end if
+    if (sum(Al)/sum(Al).ne.1) then
+          write(*,*) "NAN in Aw in geometry data in C. Probably due to wrong l_num or V_num or bad geometry value in data."
+    end if
+
+          !DEBUG
+      inquire(file="cylinder_debug.csv", exist=exist)
+           if (exist) then
+               open(13, file="cylinder_debug.csv", status="old", position="append", action="write")
+           else
+               open(13, file="cylinder_debug.csv", status="new", action="write")
+           end if
+      !DEBUG
+
   end subroutine initialize_geometry
 
   subroutine initialize_intake_valves(icyl, ival, Nval, type_dat, angle_VO, angle_VC, &
@@ -563,7 +589,7 @@ contains
     logical :: flag
 
 	  do i=1,mydata%ntemp
-		  t_wall(i) = twall(i-1)
+	    t_wall(i) = twall(i-1)
 	  end do
 
 
@@ -1098,8 +1124,8 @@ contains
     integer, intent(in) :: icyl
     type(geometry_type) :: geo
     real*8, intent(out) :: Aw,Al
-    integer :: i,j,imax,jmax
-    real*8 :: step,Aw1,Aw2,Aw3,Aw4,Al1,Al2,Al3,Al4,x,y
+    integer :: i,j
+    real*8 :: Aw1,Aw2,Aw3,Aw4,Al1,Al2,Al3,Al4,x,y,V_step,l_step
 
     ! Get geometry data of the cylinder
     geo = cyl(icyl)%geometry_data
@@ -1108,22 +1134,26 @@ contains
     Aw = -1
     Al = -1
 
+    ! Calculate volume step and piston position step
+    V_step = geo%V_max/geo%V_num
+    l_step = geo%l_max/geo%l_num
+
     ! Get indexes corresponding to current state of cylinder position and burnt gas volume
-    i=FLOOR(V/geo%V_step)+1
-    j=FLOOR(L/geo%l_step)+1
+    i=FLOOR(V/V_step)+1
+    j=FLOOR(L/l_step)+1
 
     ! Check indexes
     if ((V.gt.geo%V_max).or.(V.lt.0)) then
-        write(*,*) "ERROR: input V is greater than V_max or is negative."
+        write(*,*) "ERROR: input V is greater than V_max or is negative. V: ", V, " , V_max: ", geo%V_max
         stop
     end if
     if ((l.gt.geo%l_max).or.(l.lt.0)) then
-        write(*,*) "ERROR: input l is greater than l_max or is negative."
+        write(*,*) "ERROR: input l is greater than l_max or is negative. l: ", l, " , l_max: ", geo%l_max
         stop
     end if
 
-    x = V/geo%V_step+1
-    y = L/geo%l_step+1
+    x = V/V_step+1
+    y = L/l_step+1
     
     ! Perform bilinear interpolation to estimate output variables.
     Aw1 = (i+1-x)*(j+1-y)*geo%Aw(i,j)
@@ -1306,7 +1336,7 @@ contains
 	  dQ_ht =  dQ_hth + dQ_htr
 
 	  !DEBUG (warning: assumes monocyl engine)
-    if (globalData%debug) then
+    if (globalData%debug.gt.1) then
         inquire(file="cyl_heat_debug.csv", exist=exist)
         if (exist) then
             open(11, file="cyl_heat_debug.csv", status="old", position="append", action="write")
@@ -1349,7 +1379,6 @@ contains
    type(dataSim), intent(in) :: globalData
    real*8, intent(out) :: dQ_ht
 
-   integer :: ispecie,i,m
    real*8 :: Bo,twall
    real*8 :: mu,Pr,kappa,Sp,Re,Nu
    real*8 :: factor,C_h,dQ_hth,dQ_htr,C_r
@@ -1409,9 +1438,8 @@ contains
       dQ_htr = Area * C_r * (T-twall)
   
    dQ_ht =  dQ_hth + dQ_htr
-
    !DEBUG (warning: assumes monocyl engine)
-   if (globalData%debug) then
+   if (globalData%debug.gt.1) then
        inquire(file="cyl_heat_debug.csv", exist=exist)
        if (exist) then
            open(11, file="cyl_heat_debug.csv", status="old", position="append", action="write")
@@ -1460,7 +1488,7 @@ contains
     x_burned = 1.0d0 - dexp(pot)
 
     xbdot = dexp(pot)*a_wiebe*(m_wiebe+1.)* &
-         (modulo(theta-theta_ig,theta_cycle)/dtheta_comb)**m_wiebe/dtheta_comb
+            (modulo(theta-theta_ig,theta_cycle)/dtheta_comb)**m_wiebe/dtheta_comb
     xbdot = omega * xbdot
 
     dQ_chem    = mass_fuel * Q_fuel * xbdot
@@ -2035,12 +2063,11 @@ contains
 
     integer :: ispecie,type_ig, nunit, engine_type, converge_mode
     real*8 :: dt,rpm,theta_g,theta,theta_cycle
-    real*8 :: cp,cv,Vol,Area,Vdot,mass_old,mass_new
+    real*8 :: Vol,Area,Vdot,mass_old,mass_new
     real*8 :: omega,rho_cyl,p_cyl,T_cyl
     real*8 :: dQ_ht,dQ_chem,dQ_ht_fuel,phi,xb,xbdot
     real*8 :: edot,ene_old,ene_new,Bo,a
-    real*8 :: SE, Torque, converge_var_new, converge_var_old
-    real :: err
+    real*8 :: SE, Torque, converge_var_new
     real*8, dimension(cyl(icyl)%nvi) :: mass_in, h_in
     real*8, dimension(cyl(icyl)%nve) :: mass_out, h_out
     logical :: save_extras,exist
@@ -2057,9 +2084,6 @@ contains
     type_ig     = myData%type_ig
     Bo  = myData%Bore              ! Bore
     a   = myData%crank_radius
-
-    converge_var_new = myData%converge_var_new
-    converge_mode = myData%converge_mode
 
     theta = modulo(theta_g+myData%theta_0, theta_cycle)
 
@@ -2127,7 +2151,7 @@ contains
     Ucyl(3) = T_cyl
 
     !DEBUG
-    if (globalData%debug) then
+    if (globalData%debug.gt.0) then
        if (mod(globaldata%iter_sim1d,1)==0) then
            inquire(file="cylinder_debug.csv", exist=exist)
            if (exist) then
@@ -2217,7 +2241,7 @@ contains
 
    integer :: ispecie,type_ig, nunit, engine_type
    real*8 :: dt,rpm,theta_g,theta,theta_cycle
-   real*8 :: cp,cv,Vol,Area,Vdot,mass_old,mass_new,LHV
+   real*8 :: Vol,Area,Vdot,mass_old,mass_new,LHV
    real*8 :: omega,rho_cyl,p_cyl,T_cyl,rho_b,T_b,rho_u,T_u,T_avg
    real*8 :: cp_u,cv_u,R_gas_u,dQ_ht_u,dQ_ht_b,Tdot_u,Tdot_b,cv_b,cp_b,R_gas_b
    real*8 :: xb,xbdot,m_b,mdot_b,m_u,mdot_u,yb,ybdot,V_b,Vdot_b,V_u,Vdot_u,piston_pos,A_fdl,Area_u,Area_b
@@ -2310,16 +2334,12 @@ contains
           ! the entalpy diference in the zones is the lower heating value of the fuel per unit of total mass.
           LHV = cyl(icyl)%fuel_data%Q_fuel*mass_cyl(1)/sum(mass_cyl)
           ! First we estimate T_b using cp for unbunrt gas because we don't know bunrt gas temperature
-          T_b = T_u+LHV/cv_u
-          write(*,*) "INFO: First estimated initial burnt gas temperature (adiabatic flame temperature) is ", T_b
+          T_b = Ucyl(3)+LHV/cp_u
           ! After, we calculate cp for bunrt gas with new temperature, we recalculate T_b using average cp. (iterative)
+          ! and take the 90% of that temperature to account for heat losses to the wall of the cylinder.
           call comp_gas_prop(myData,globalData,mass_cyl,T_b,cv_b,cp_b,R_gas_b,icyl)
-          T_b = T_u+2.0*LHV/(cv_b+cv_u)
-          write(*,*) "INFO: Second estimated initial burnt gas temperature (adiabatic flame temperature) is ", T_b
-          call comp_gas_prop(myData,globalData,mass_cyl,T_b,cv_b,cp_b,R_gas_b,icyl)
-          T_b = (T_u+2.0*LHV/(cp_b+cp_u)+T_b)/2.0
-          write(*,*) "INFO: Third estimated initial burnt gas temperature (adiabatic flame temperature) is ", T_b
-          rho_u = Ucyl(1)/4
+          T_b = 0.9*(Ucyl(3)+2.0*LHV/(cp_b+cp_u))
+          rho_u = Ucyl(1)
           T_u = Ucyl(3)
           write(*,*) "INFO: Estimated initial burnt gas temperature (adiabatic flame temperature) is ", T_b
       end if
@@ -2330,8 +2350,7 @@ contains
       call comp_volume_multizone(Vol,Vdot,V_b,Vdot_b,V_u,Vdot_u,xb,xbdot,rho_u,rho_b,yb,ybdot)
 
       ! Get area of zones which is in contact with cylinder wall
-      ! Warning: we assume flat piston (piston pin axis at the same heigth than piston's top face)
-      piston_pos = a*(1-dcos(theta))+l-dsqrt(l**2-(a*dcos(theta))**2)
+      piston_pos = l+a*(1-dcos(theta))-dsqrt(l**2-(a*dsin(theta))**2)
       call geometry_multizone(A_fdl,Area_b,icyl,V_b,piston_pos)
       Area_u = Area-Area_b
 
@@ -2339,45 +2358,58 @@ contains
       call heat_transfer_multizone(myData, globalData, rho_u, P_cyl, T_u, Area_u, cp_u, dQ_ht_u, t_wall)
       call heat_transfer_multizone(myData, globalData, rho_b, P_cyl, T_b, Area_b, cp_b, dQ_ht_b, t_wall)
 
+      !DEBUG (warning: assumes monocyl engine)
+      if (globalData%debug.gt.5) then
+          inquire(file="cyl_heat_debug_multizone.csv", exist=exist)
+          if (exist) then
+              open(99, file="cyl_heat_debug_multizone.csv", status="old", position="append", action="write")
+          else
+              open(99, file="cyl_heat_debug_multizone.csv", status="new", action="write")
+          endif
+          write(99,"(F20.3,A1,F10.5,A1,F10.5,A1,F10.5)") &
+                  dQ_ht_b, ";", dQ_ht_u, ";", globaldata%time,";", globalData%theta
+          close(99)
+      end if
+
       ! Compute new temperature, density and pressure of unburnt zone
       m_u = sum(mass_cyl)*(1-xb)
       mdot_u = -sum(mass_cyl)*xbdot
 
       ! Calculate unburnt zone gas properties
-      if (xb.ne.1) then
+      if (xb.le.0.9999) then
           Tdot_u = (-P_cyl*Vdot_u-dQ_ht_u+R_gas_u*T_u*mdot_u)/(cv_u*m_u)
           T_u = T_u+Tdot_u*dt
           if ((T_u/T_u).ne.1) then
-              write(*,*) "ERROR: NAN in unburnt gas temperature."
-              STOP
+              write(*,*) "ERROR: NAN in unburnt gas temperature.", Tdot_u, m_u, xb, xbdot, sum(mass_cyl), P_cyl, Vdot_u
           end if
-          rho_u = m_u/V_u
       else
-          write(*,*) "ERROR: Wrong Wiebe function parameters. Xb should not be equal to 1 at the end of combustion."
-          STOP
+          write(*,*) "WARNING: Wrong Wiebe function parameters. Xb should not be equal to 1 at the end of combustion."
       end if
 
-      ! Calculate burnt zone gas properties
-      m_b = sum(mass_cyl)*xb
-      mdot_b = sum(mass_cyl)*xbdot
+
       !OBSERVACION: en caso de que xb=0 rho_b y T_b coindicien con el estado del modelo de una zona
-      if ((modulo(theta-theta_ig,theta_cycle).ge.(omega*dt))) then
+      ! Calculate burnt zone gas properties
+      if (xb.ne.0.0) then
+          m_b = MAX(sum(mass_cyl)*xb,1e-10)
+          mdot_b = sum(mass_cyl)*xbdot
           Tdot_b = -P_cyl*Vdot_b-dQ_ht_b+dQ_chem-dQ_ht_fuel
           Tdot_b = Tdot_b+(cp_u*T_u-cv_b*T_b)*mdot_b
           Tdot_b = Tdot_b/(m_b*cv_b)
           T_b = T_b+Tdot_b*dt
           if ((T_b/T_b).ne.1) then
-              write(*,*) "ERROR: NAN in burnt gas temperature."
-              STOP
+              write(*,*) "ERROR: NAN in burnt gas temperature.", T_b, Tdot_b
           end if
-          rho_b = m_b/V_b
+      else
+          write(*,*) "WARNING: xb=0 check your combustion parameters.", xb
       end if
+
 
       ! Calculate cylinder pressure
       P_cyl = (m_u*R_gas_u*T_u+m_b*R_gas_b*T_b)/Vol
 
-      !rho_b = P_cyl/(R_gas_b*T_b)
-      !rho_u = P_cyl/(R_gas_u*T_u)
+      ! Calulate density of each zone
+      rho_b = P_cyl/(R_gas_b*T_b)
+      rho_u = P_cyl/(R_gas_u*T_u)
 
       ! Refresh state vectors
       Ucyl(1) = rho_b
@@ -2387,26 +2419,24 @@ contains
       cyl(icyl)%state_multizone(2) = P_cyl
       cyl(icyl)%state_multizone(3) = T_u
 
-      !write(*,*) "P, rho_b, T_b, rho_u, T_u:", P_cyl,rho_b,T_b,rho_u,T_u
-      !write(*,*) " "
       !DEBUG
-      if (globalData%debug) then
-        if (mod(globaldata%iter_sim1d,1)==0) then
+      if (globalData%debug.gt.4) then
+        if (mod(globaldata%iter_sim1d,10)==0) then
            inquire(file="cylinder_multizone_debug.csv", exist=exist)
            if (exist) then
                open(17, file="cylinder_multizone_debug.csv", status="old", position="append", action="write")
            else
                open(17, file="cylinder_multizone_debug.csv", status="new", action="write")
            end if
-           write(17,"(F20.3,A1,F20.3,A1,F20.3,A1,F20.3,A1,F20.3,A1,F20.3,A1,F20.3,A1,F20.3,A1,F20.3,A1,&
-                   F20.3,A1,F20.3,A1,F20.3,A1,F20.3,A1,I4,A1,I4,A1,F10.5,A1,F10.5)") &
-                   xb, ";", xbdot, ";", m_b, ";", mdot_b, ";", V_b*1e6, ";", Vdot_b*1e6*60/(omega*2*pi), &
+           write(17,"(F20.3,A1,F20.10,A1,F10.9,A1,F20.3,A1,F20.3,A1,F20.3,A1,F10.9,A1,F20.3,A1,F20.3,A1,&
+                   F20.3,A1,F20.3,A1,F20.3,A1,F20.3,A1,F10.5,A1,F10.5,A1,I4,A1,I4,A1,F10.5,A1,F10.5)") &
+                   xb, ";", (dQ_ht_b+dQ_chem-dQ_ht_fuel+dQ_ht_u)/(omega*(180/pi)), ";", m_b, ";", mdot_b, ";", V_b*1e6, ";"&
+                   , Vdot_b*1e6*60/(omega*2*pi), &
                    ";", m_u,";", mdot_u, ";", V_u*1e6, ";", Vdot_u*1e6*60/(omega*2*pi), ";", Vol*1e6, ";",&
-                   Vdot*1e6*60/(omega*2*pi), ";", rho_b/rho_u, ";", icyl, ";", &
+                   Vdot*1e6*60/(omega*2*pi), ";", rho_b/rho_u, ";", Area_b, ";", Area, ";", icyl, ";", &
                    globalData%icycle, ";", globalData%time, ";", theta
-
            close(17)
-            end if
+        end if
       end if
       !END DEBUG
     else
@@ -2442,18 +2472,11 @@ contains
     end if
 
    !DEBUG
-   if (globalData%debug) then
-       if (mod(globaldata%iter_sim1d,1)==0) then
-           inquire(file="cylinder_debug.csv", exist=exist)
-           if (exist) then
-               open(13, file="cylinder_debug.csv", status="old", position="append", action="write")
-           else
-               open(13, file="cylinder_debug.csv", status="new", action="write")
-           end if
+   if (globalData%debug.gt.0) then
+       if (mod(globaldata%iter_sim1d,30)==0) then
            write(13,"(F20.3,A1,F20.3,A1,F20.3,A1,I4,A1,I4,A1,F10.5,A1,F10.5)") &
                p_cyl, ";", Ucyl(3), ";", cyl(icyl)%state_multizone(3), ";", icyl, &
                    ";", globalData%icycle, ";", globalData%time, ";", theta
-           close(13)
        end if
    end if
    !END DEBUG
@@ -2849,11 +2872,12 @@ contains
     real*8, dimension(cyl(icyl)%nve), intent(in) :: mass_out
     type(this), intent(inout) :: myData
     type(dataSim), intent(inout) :: globalData
-    real*8 :: dt, rpm, theta_g, theta, theta_cycle, omega
+    real*8 :: dt, rpm, theta_g, theta, theta_cycle, omega, time
     real*8 :: converge_var_new, converge_var_old, err  
     logical :: exist
 
     theta_cycle = globalData%theta_cycle
+    time        = globalData%time
     dt          = globalData%dt
     rpm         = globalData%rpm
     theta_g     = globalData%theta
@@ -2878,7 +2902,7 @@ contains
       converge_var_new=converge_var_new+sum(mass_out)*dt
     !Criterio: presion media efectiva por ciclo
     elseif (converge_mode.eq.5) then
-      converge_var_new=converge_var_new+p_cyl*dt*vdot
+      converge_var_new=converge_var_new+vdot*p_cyl*dt
       !Criterio: temperatura media por ciclo
     elseif (converge_mode.eq.6) then
       converge_var_new=converge_var_new+T_cyl*dt
@@ -2897,7 +2921,7 @@ contains
                 globalData%has_converged = globalData%has_converged+1
              endif
              !DEBUG
-             if (globalData%debug) then
+             if (globalData%debug.gt.2) then
                 inquire(file="convergence_debug.csv", exist=exist)
                 if (exist) then
                     open(8, file="convergence_debug.csv", status="old", position="append", action="write")
@@ -2919,10 +2943,22 @@ contains
     implicit none
     real*8, intent(in) :: V,Vdot,xb,xbdot,rho_u,rho_b
     real*8, intent(out) :: V_b,Vdot_b,V_u,Vdot_u,yb,ybdot
+    real*8 :: c
 
-    ! Simplification: we assume that rho_u/rho_b=4
-    yb = 4.0/(3.0+1.0/xb)
-    ybdot = xbdot*(yb-0.75*yb**2)/xb
+    ! Simplication: we assume dc/dt=0.
+    c = rho_u/rho_b
+    if (xb.eq.0) then
+        ! limit of xb-->0
+        yb = 0.0
+        ybdot = c*xbdot
+    elseif (xb.gt.0.9999) then
+        ! limit of xb-->1
+        yb = 1.0
+        ybdot = xbdot/c
+    else
+        yb = 1/((((1/xb)-1)/c)+1)
+        ybdot = xbdot/(c*xb**2*((-1+1/xb)/c+1)**2)
+    end if
 
     V_b = yb*V
     V_u = V-v_b
@@ -2930,8 +2966,9 @@ contains
     Vdot_b = V*ybdot+yb*Vdot
     Vdot_u = Vdot-Vdot_b
 
-    if ((Vdot_b.lt.0).and.(Vdot_u.gt.0)) then
+    if ((Vdot_b.lt.0).or.(Vdot_u.gt.0).or.((Vdot_b/Vdot_b).ne.1).or.((Vdot_u/Vdot_u).ne.1)) then
         write(*,*) "WARNING: Multizone volume variation is bad. dV_u/dt: ", Vdot_u, " , dV_b/dt: ", Vdot_b
+        write(*,*) V,Vdot,V_b,Vdot_b,V_u,Vdot_u,xb,xbdot,rho_u,rho_b,yb,ybdot
     end if
 
   end subroutine comp_volume_multizone

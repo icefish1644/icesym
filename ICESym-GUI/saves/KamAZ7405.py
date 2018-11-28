@@ -10,13 +10,11 @@
 
 Simulator0 = dict()
 Simulator0['dtheta_rpm'] = 1.0
-Simulator0['filein_state'] = ''
 Simulator0['calc_engine_data'] = 1
 Simulator0['Courant'] = 0.8
 Simulator0['heat_flow'] = 1.0
 Simulator0['R_gas'] = 287.0
 Simulator0['rpms'] = [1000, 1400, 1800, 2200]
-Simulator0['filesave_spd'] = ''
 Simulator0['filesave_state'] = 'KamAZ7405'
 Simulator0['ncycles'] = 5
 Simulator0['folder_name'] = 'KamAZ7405'
