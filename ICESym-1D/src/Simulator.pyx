@@ -246,6 +246,8 @@ cdef class Simulator:
 		cdef cylindervec cylinders = cylindervec_factory(0)
 		cdef Cylinder auxCyl
 		for k in range(ncyl):
+			print(range(ncyl))
+			print(k)
 			for l in range(ncyl):
 				icyl = sargs['ig_order'][l]
 				if(icyl==k): break
@@ -276,6 +278,7 @@ cdef class Simulator:
 		cdef atmvec atmospheres = atmvec_factory(0)
 		cdef Atmosphere auxAtm
 		for k in range(natm):
+			print(k)
 			auxAtm = Atmosphere(**dataAtmospheres[k])
 			atmospheres.push_back(copyAtmosphere(auxAtm.thisptr))
 

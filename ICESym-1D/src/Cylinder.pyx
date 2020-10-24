@@ -141,7 +141,7 @@ cdef extern from "cylinder.h":
 						 doublevec U_crevice, doublevec data_crevice, doublevec mass_C, int model_ht,
 						 double factor_ht, int scavenge, int scavenge_type, int type_ig, int full_implicit,
 						 fuel fuel_data, combustion combustion_data, injection injection_data,
-						 valvevec intake_valves, valvevec exhaust_valves, Scavenge scavenge_data, geometry geometry_data,
+						 valvevec intake_valves, valvevec exhaust_valves, Scavenge scavenge_data,
 						 int extras, int species_model, int nvanes, double major_radius, double minor_radius,
 						 double chamber_heigh, int converge_mode, double converge_var_old,
 						  double converge_var_new)
@@ -174,16 +174,17 @@ cdef class Cylinder:
 
 		onlyAssert(kargs,'state_ini','Cylinder')
 		cdef doublevec state_ini = doublevec_factory(0)
+		
 		for i in range(nnod):
 			for j in range(ndof):
-				state_ini.push_back(kargs['state_ini'][i][j])
+				state_ini.push_back(kargs['state_ini'][int(i)][int(j)])
 		
 		onlyAssert(kargs,'histo','Cylinder')
 		cdef intvec histo = intvec_factory(0)
 		print kargs['histo'], range(nnod)
 		for i in range(len(kargs['histo'])):
-			if(kargs['histo'][i] in range(nnod)):
-				histo.push_back(kargs['histo'][i])
+			if(kargs['histo'][int(i)] in range(nnod)):
+				histo.push_back(kargs['histo'][int(i)])
 			else:
 				print 'Fail inicialitation in [Cylinder], some node to histo not exists'
 				sys.exit()
@@ -219,7 +220,7 @@ cdef class Cylinder:
 		
 		cdef double t_prom = 0
 		for i in range(len(kargs['twall'])):
-			twall.push_back(kargs['twall'][i])
+			twall.push_back(kargs['twall'][int(i)])
 		if (len(kargs['twall']) == 1):
 			twall.push_back(kargs['twall'][0])
 			twall.push_back(kargs['twall'][0])
@@ -233,25 +234,25 @@ cdef class Cylinder:
 		#onlyAssert(kargs,'prop','Cylinder')
 		kargs['prop'] = assignOptional(kargs,'prop',[1])
 		for i in range(len(kargs['prop'])):
-			prop.push_back(kargs['prop'][i])
+			prop.push_back(kargs['prop'][int(i)])
     	
 		cdef doublevec U_crevice = doublevec_factory(0)
 		#onlyAssert(kargs,'U_crevice','Cylinder')
 		kargs['U_crevice'] = assignOptional(kargs,'U_crevice',[1])
 		for i in range(len(kargs['U_crevice'])):
-			U_crevice.push_back(kargs['U_crevice'][i])
+			U_crevice.push_back(kargs['U_crevice'][int(i)])
 	
 		cdef doublevec data_crevice = doublevec_factory(0)
 		#onlyAssert(kargs,'data_crevice','Cylinder')
 		kargs['data_crevice'] = assignOptional(kargs,'data_crevice',[1])
 		for i in range(len(kargs['data_crevice'])):
-			data_crevice.push_back(kargs['data_crevice'][i])
+			data_crevice.push_back(kargs['data_crevice'][int(i)])
     	
 		cdef doublevec mass_C = doublevec_factory(0)
 		validateSize(kargs,'mass_C','Cylinder',6*(nnod-len(vargs)))
 		onlyAssert(kargs,'mass_C','Cylinder')
 		for i in range(len(kargs['mass_C'])):
-			mass_C.push_back(kargs['mass_C'][i])
+			mass_C.push_back(kargs['mass_C'][int(i)])
     	
 		cdef int model_ht      = assignOptional(kargs,'model_ht',0)
 		cdef double factor_ht  = assignOptional(kargs,'factor_ht',1.0)
@@ -346,15 +347,15 @@ cdef class Cylinder:
 		cdef valvevec exhaust_valves = valvevec_factory(0)
 		cdef valve auxValve
 		for i in range(len(vargs)):
-			auxValve.tube	     = onlyAssert(vargs[i],'tube','Valve-Cylinder')
-			auxValve.Nval	     = validatePositive(vargs[i],'Nval','Valve-Cylinder',1)
-			auxValve.type_dat    = onlyAssert(vargs[i],'type_dat','Valve-Cylinder')
-			auxValve.angle_V0    = onlyAssert(vargs[i],'angle_V0','Valve-Cylinder')
-			auxValve.angle_VC    = onlyAssert(vargs[i],'angle_VC','Valve-Cylinder')
-			auxValve.Dv	     = validatePositive(vargs[i],'Dv','Valve-Cylinder')
+			auxValve.tube	     = onlyAssert(vargs[int(i)],'tube','Valve-Cylinder')
+			auxValve.Nval	     = validatePositive(vargs[int(i)],'Nval','Valve-Cylinder',1)
+			auxValve.type_dat    = onlyAssert(vargs[int(i)],'type_dat','Valve-Cylinder')
+			auxValve.angle_V0    = onlyAssert(vargs[int(i)],'angle_V0','Valve-Cylinder')
+			auxValve.angle_VC    = onlyAssert(vargs[int(i)],'angle_VC','Valve-Cylinder')
+			auxValve.Dv	     = validatePositive(vargs[int(i)],'Dv','Valve-Cylinder')
 			auxValve.Lv 	     = doublevec_factory(0)
-			auxValve.Lvmax 	     = validatePositive(vargs[i],'Lvmax','Valve-Cylinder',0)
-			auxValve.valve_model = validateInList(vargs[i],'valve_model','Valve-Cylinder',[0,1],0)
+			auxValve.Lvmax 	     = validatePositive(vargs[int(i)],'Lvmax','Valve-Cylinder',0)
+			auxValve.valve_model = validateInList(vargs[int(i)],'valve_model','Valve-Cylinder',[0,1],0)
 			if auxValve.type_dat == 0: # ley senoidal cuadrada, a calcular en Fortran
 				auxValve.Lv.push_back(-1)
 				auxValve.Lv.push_back(-1)
@@ -362,26 +363,26 @@ cdef class Cylinder:
 				auxValve.Lv.push_back(-1)
 				auxValve.Lv.push_back(-1)
 			#	else:   # se debe ingresar un array(2x721) y lo mapea a un array unidimensional [ang,val,ang,val...]
-			#		# if (validateSize(vargs[i],'Lv','Valve-Cylinder',721)):
+			#		# if (validateSize(vargs[int(i)],'Lv','Valve-Cylinder',721)):
 			#		auxValve.Lv = []
-			#		for j in range(len(vargs[i]['Lv'][0])):
-			#			auxValve.Lv.push_back(vargs[i]['Lv'][0][j])
-			#			auxValve.Lv.push_back(vargs[i]['Lv'][1][j])
+			#		for j in range(len(vargs[int(i)]['Lv'][0])):
+			#			auxValve.Lv.push_back(vargs[int(i)]['Lv'][0][int(j)])
+			#			auxValve.Lv.push_back(vargs[int(i)]['Lv'][1][int(j)])
 			# ahora se recibe pares [angulo,valor]
 			else:
 				auxValve.Lv = []
-				for j in range(len(vargs[i]['Lv'])):
-					auxValve.Lv.push_back(vargs[i]['Lv'][j][0])
-					auxValve.Lv.push_back(vargs[i]['Lv'][j][1])
+				for j in range(len(vargs[int(i)]['Lv'])):
+					auxValve.Lv.push_back(vargs[int(i)]['Lv'][int(j)][0])
+					auxValve.Lv.push_back(vargs[int(i)]['Lv'][int(j)][1])
 				
 			auxValve.Cd = []
-			#for j in range(len(vargs[i]['Cd'][0])):
-			#	auxValve.Cd.push_back(vargs[i]['Cd'][0][j])
-			#	auxValve.Cd.push_back(vargs[i]['Cd'][1][j])
-			for j in range(len(vargs[i]['Cd'])):
-				auxValve.Cd.push_back(vargs[i]['Cd'][j][0])
-				auxValve.Cd.push_back(vargs[i]['Cd'][j][1])		
-			#print "Cd: ", vargs[i]['Cd']
+			#for j in range(len(vargs[int(i)]['Cd'][0])):
+			#	auxValve.Cd.push_back(vargs[int(i)]['Cd'][0][int(j)])
+			#	auxValve.Cd.push_back(vargs[int(i)]['Cd'][1][int(j)])
+			for j in range(len(vargs[int(i)]['Cd'])):
+				auxValve.Cd.push_back(vargs[int(i)]['Cd'][int(j)][0])
+				auxValve.Cd.push_back(vargs[int(i)]['Cd'][int(j)][1])		
+			#print "Cd: ", vargs[int(i)]['Cd']
 			
 			if(i<nintake):
 				intake_valves.push_back(auxValve)
@@ -408,11 +409,11 @@ cdef class Cylinder:
 			if(injection_data.pulse == 3):
 				mfdot = onlyAssert(iargs,'mfdot_array','Injection-Cylinder')
 				#for i in range(len(mfdot[0])): #[key1,value1,key2,value2,....,keyN,valueN]
-				#	injection_data.mfdot_array.push_back(mfdot[0][i])
-				#	injection_data.mfdot_array.push_back(mfdot[1][i])	
+				#	injection_data.mfdot_array.push_back(mfdot[0][int(i)])
+				#	injection_data.mfdot_array.push_back(mfdot[1][int(i)])	
 				for i in range(len(mfdot)): #[key1,value1,key2,value2,....,keyN,valueN]
-					injection_data.mfdot_array.push_back(mfdot[i][0])
-					injection_data.mfdot_array.push_back(mfdot[i][1])
+					injection_data.mfdot_array.push_back(mfdot[int(i)][0])
+					injection_data.mfdot_array.push_back(mfdot[int(i)][1])
 
 		#condiciones para combustion
 		cdef combustion combustion_data
@@ -439,11 +440,11 @@ cdef class Cylinder:
 		if(combustion_data.combustion_model==0):
 			xbdot = onlyAssert(cargs,'xbdot_array','Combustion-Cylinder')
 			#for i in range(len(xbdot[0])): #[key1,value1,key2,value2,....,keyN,valueN]
-			#	combustion_data.xbdot_array.push_back(xbdot[0][i])
-			#	combustion_data.xbdot_array.push_back(xbdot[1][i])		
+			#	combustion_data.xbdot_array.push_back(xbdot[0][int(i)])
+			#	combustion_data.xbdot_array.push_back(xbdot[1][int(i)])		
 			for i in range(len(xbdot)): #[key1,value1,key2,value2,....,keyN,valueN]
-				combustion_data.xbdot_array.push_back(xbdot[i][0])
-				combustion_data.xbdot_array.push_back(xbdot[i][1])
+				combustion_data.xbdot_array.push_back(xbdot[int(i)][0])
+				combustion_data.xbdot_array.push_back(xbdot[int(i)][1])
 
 		#Condiciones para convergencia
 		cdef int converge_mode = assignOptional(kargs,'converge_mode',0)
@@ -451,26 +452,26 @@ cdef class Cylinder:
 		cdef double converge_var_new = 0.0
 
 		#Condiciones para geometry
-		# Nota: Agregar chequeo de dimensiones
-		cdef geometry geometry_data
-		gargs = kargs['geometry']
-		geometry_data.V_max = assignOptional(gargs,'cyl_volume', -1)
-		geometry_data.V_step = assignOptional(gargs, 'volume_step', -1)
-		geometry_data.l_max = assignOptional(gargs,'stroke', -1)
-		geometry_data.l_step = assignOptional(gargs, 'piston_position_step', -1)
-		Aw = assignOptional(gargs, 'wetted_wall_area', -1)
-		Al = assignOptional(gargs, 'wetted_wall_area', -1)
+		# # Nota: Agregar chequeo de dimensiones
+		# cdef geometry geometry_data
+		# gargs = kargs['geometry']
+		# geometry_data.V_max = assignOptional(gargs,'cyl_volume', -1)
+		# geometry_data.V_step = assignOptional(gargs, 'volume_step', -1)
+		# geometry_data.l_max = assignOptional(gargs,'stroke', -1)
+		# geometry_data.l_step = assignOptional(gargs, 'piston_position_step', -1)
+		# Aw = assignOptional(gargs, 'wetted_wall_area', -1)
+		# Al = assignOptional(gargs, 'wetted_wall_area', -1)
 
-		if (Aw == -1) and (Al == -1):
-			geometry_data.Aw.push_back(-1)
-			geometry_data.Al.push_back(-1)
-		else:
-			jmax = geometry_data.l_max/geometry_data.l_step
-			imax = geometry_data.V_max/geometry_data.V_step
-			for i in range(0,imax+1):
-				for j in range(0,jmax+1):
-					geometry_data.Aw.push_back(Aw[i,j])
-					geometry_data.Al.push_back(Al[i,j])
+		# if (Aw == -1) and (Al == -1):
+		# 	geometry_data.Aw.push_back(-1)
+		# 	geometry_data.Al.push_back(-1)
+		# else:
+		# 	jmax = geometry_data.l_max/geometry_data.l_step
+		# 	imax = geometry_data.V_max/geometry_data.V_step
+		# 	for i in range(0,imax+1):
+		# 		for j in range(0,jmax+1):
+		# 			geometry_data.Aw.push_back(Aw[i,j])
+		# 			geometry_data.Al.push_back(Al[i,j])
 				
 		#instancio la clase
 		self.thisptr = new_Cylinder(nnod, ndof, nnod_input, implicit, state_ini, histo, label, Bore, crank_radius,
@@ -478,7 +479,7 @@ cdef class Cylinder:
 					    delta_ca, twall, prop, U_crevice, data_crevice, mass_C, model_ht,
 					    factor_ht, scavenge, scavenge_type, type_ig, full_implicit,fuel_data,
 					    combustion_data, injection_data, intake_valves, exhaust_valves, 
-					    scavenge_data, geometry_data, extras, species_model, nvanes, major_radius, minor_radius,
+					    scavenge_data, extras, species_model, nvanes, major_radius, minor_radius,
 					    chamber_heigh, converge_mode, converge_var_old, converge_var_new)
 
 	def __dealloc__(self):

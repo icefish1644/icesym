@@ -107,18 +107,6 @@ typedef struct
 	bool close_cyl;
 }Scavenge;
 
-/**
-   Defines datatype "geometry" (Multizone model)
-*/
-typedef struct
-{
-	vector<double> Aw;			/**< Area of cylinder wall that is in touch with burnt gases (Aw(V,l)) */
-	vector<double> Al;			/**< Laminar flame area (Af(V,l)) */
-	double V_max;				/**< Volume inside cylinder when piston is in BDC*/
-	double V_step;				/**< Volume diference or step in data of Aw(V,l) and Af(V,l) */
-	double l_max;				/**< Stroke */
-	double l_step;				/**< Piston position step in data of Aw(V,l) and Af(V,l) */
-} geometry; 
 
 /**
   	Cylinder Class
@@ -130,7 +118,7 @@ class Cylinder: public Component
 			 char*, double, double, double, double, double, double,
 	         double, double, vector<double>, vector<double>, vector<double>, 
 			 vector<double>,vector<double>, int, double, int, int, int, int, fuel, 
-			 combustion, injection, vector<valve>, vector<valve>, Scavenge, geometry,
+			 combustion, injection, vector<valve>, vector<valve>, Scavenge,
 			 int, int, int, double, double, double, int, double, double);
 	Cylinder(Cylinder* c);
 	Cylinder(){};
@@ -177,7 +165,6 @@ class Cylinder: public Component
 	Scavenge scavenge_data;		
 	injection injection_data;
 	combustion combustion_data;
-	geometry geometry_data;	  /**< Stores geometrical data of cylinder and flame (Multizone model)*/
 	int icyl;				  /**< Index of this cylinder in global array*/
 	int species_model;		  /**< Type of Species Model 0:none, 1:single-component */
 
@@ -219,8 +206,6 @@ extern "C"{
 								  int* valve_model, int* l1, int* l2, double* dx_tube, double* Area_tube, 
 								  double* twall_tube, double* dAreax_tube, int* tube, double* theta_0,
 								  dataSim* globalData);
-	void initialize_geometry(int* icyl,double* Aw, double* Al, double* V_max, double* l_max,
-							 double* V_step, double* l_step);
 	void open_unit(int* nu, char* file, int* nfsize);
 	void close_unit(int* nu);
 }
